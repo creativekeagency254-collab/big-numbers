@@ -288,7 +288,8 @@ function uid(){return Date.now().toString(36)+Math.random().toString(36).slice(2
 function ts(){return new Date().toLocaleTimeString('en-KE',{hour12:false})}
 function ds(){return new Date().toLocaleDateString('en-KE',{day:'2-digit',month:'short',year:'numeric'})}
 function sl(ms){return new Promise(r=>setTimeout(r,ms))}
-function sendDelay(){const d=Math.max(0,Number(S.delayMs)||0);return d?sl(d):Promise.resolve()}\nfunction waitWithStop(sec){const s=Math.max(0,Math.floor(sec||0));if(!s)return Promise.resolve();return new Promise(async r=>{for(let i=0;i<s;i++){if(stopF)break;await sl(1000)}r()})}\n
+function sendDelay(){const d=Math.max(0,Number(S.delayMs)||0);return d?sl(d):Promise.resolve()}
+function waitWithStop(sec){const s=Math.max(0,Math.floor(sec||0));if(!s)return Promise.resolve();return new Promise(async r=>{for(let i=0;i<s;i++){if(stopF)break;await sl(1000)}r()})}
 function e(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;')}
 function mkC(ph,nm=''){return{id:uid(),phone:fmtP(ph),name:nm.trim(),status:'idle',retries:0,attempts:[],paidAt:null,ref:null,note:'',totalPaid:0}}
 function demo(){return['0712345678','0723456789','0700111222'].map(p=>mkC(p))}
@@ -923,6 +924,9 @@ initInstallPrompt();
 </script>
 </body>
 </html>
+
+
+
 
 
 
