@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -292,10 +292,12 @@ function mkC(ph,nm=''){return{id:uid(),phone:fmtP(ph),name:nm.trim(),status:'idl
 function demo(){return['0712345678','0723456789','0700111222'].map(p=>mkC(p))}
 
 const SCHEDS=[
-  {id:'once',name:'One time',    desc:'Single prompt only',retries:1,winMin:60,cont:false,icon:'1×'},
-  {id:'3x1h',name:'3× per hour',desc:'3 prompts / 60 min',retries:3,winMin:60,cont:false,icon:'3×'},
-  {id:'3x24',name:'3× / hr 24/7',desc:'Runs every hour all day',retries:3,winMin:60,cont:true,icon:'8'},
-  {id:'cust',name:'Custom',      desc:'Set your own rules',retries:null,winMin:null,cont:false,icon:'?'},
+  {id:'once',name:'One time',    desc:'Single prompt only',retries:1,winMin:60,cont:false,icon:'1x'},
+  {id:'3x1h',name:'3x per hour',desc:'3 prompts / 60 min',retries:3,winMin:60,cont:false,icon:'3x'},
+  {id:'3x24',name:'3x / hr 24/7',desc:'Runs every hour all day',retries:3,winMin:60,cont:true,icon:'8'},
+  {id:'1m1h',name:'Every minute (1 hour)',desc:'Blast all contacts every 60s for 1 hour',retries:60,winMin:60,cont:false,mode:'blast',intervalSec:60,maxRounds:60,icon:'1m'},
+  {id:'1m24',name:'Every minute (all day)',desc:'Blast all contacts every 60s for 24 hours',retries:1440,winMin:1440,cont:false,mode:'blast',intervalSec:60,maxRounds:1440,icon:'24h'},
+  {id:'cust',name:'Custom',      desc:'Set your own rules',retries:null,winMin:null,cont:false,icon:'?'}
 ];
 function gSched(){return SCHEDS.find(s=>s.id===S.schedId)||SCHEDS[1]}
 function gRet(){return S.schedId==='cust'?S.custRet:gSched().retries}
@@ -377,11 +379,54 @@ async function runCampaign(){
   if(!S.contacts.length){alert('Add contacts first.');S.tab='contacts';render();return}
   stopF=false;S.running=true;S.stats={prompted:0,paid:0,failed:0,ksh:0};
   S.tab='run';render();
-  addLog('Campaign started · '+S.contacts.length+' contacts · KSH '+S.amount+' · '+gSched().name,'ok');
+  addLog('Campaign started - '+S.contacts.length+' contacts - KSH '+S.amount+' - '+gSched().name,'ok');
   const sc=gSched();let round=0;
+  if(sc.mode==='blast'){
+    while(!stopF){
+      const pending=S.contacts.filter(c=>c.status!=='paid');
+      if(!pending.length){addLog('All contacts paid.','ok');break;}
+      const maxRounds=sc.maxRounds||gRet();
+      if(maxRounds&&round>=maxRounds){addLog('Max rounds reached.','err');break;}
+      addLog('Blast round '+(round+1)+' - '+pending.length+' contacts','inf');
+      const now=Date.now(),wMs=gWin()*60000;
+      await Promise.all(pending.map(async entry=>{
+        if(stopF)return;
+        const fc=S.contacts.find(c=>c.id===entry.id)||entry;
+        if(fc.status==='paid')return;
+        const rec=(fc.attempts||[]).filter(t=>t>now-wMs).length;
+        if(rec>=gRet()){
+          if(fc.status!=='failed'){updC(entry.id,{status:'failed',note:'Max retries'});S.stats.failed++;updStats();}
+          return;
+        }
+        updC(entry.id,{status:'active'});S.stats.prompted++;updStats();
+        const result=await doCharge(fc);
+        const t2=Date.now();
+        if(!result.ok){
+          addLog('Fail '+fc.phone+' - '+result.err,'err');
+          updC(entry.id,{status:'failed',retries:(fc.retries||0)+1,attempts:[...(fc.attempts||[]),t2],note:result.err});
+          S.stats.failed++;updStats();
+          return;
+        }
+        addLog('Paid '+fc.phone+' - KSH '+S.amount,'ok');
+        const rec2={id:uid(),phone:fc.phone,name:fc.name,amount:S.amount,ref:result.ref,time:ts(),date:ds()};
+        S.records=[rec2,...S.records.slice(0,999)];
+        updC(entry.id,{status:'paid',paidAt:ts(),ref:result.ref,attempts:[...(fc.attempts||[]),t2],totalPaid:(fc.totalPaid||0)+S.amount});
+        S.stats.paid++;S.stats.ksh+=S.amount;updStats();
+      }));
+      round++;
+      save();
+      if(stopF)break;
+      await sl((sc.intervalSec||60)*1000);
+    }
+    const wasStopped=stopF;
+    S.curId=null;S.running=false;save();
+    addLog(wasStopped?'Campaign stopped.':'Campaign complete.',wasStopped?'err':'ok');
+    S.tab=wasStopped?'run':'report';render();
+    return;
+  }
   do{
     if(round>0){
-      addLog('Cycle '+round+' — resetting failed contacts','inf');
+      addLog('Cycle '+round+' - resetting failed contacts','inf');
       S.contacts=S.contacts.map(c=>c.status!=='paid'?{...c,status:'idle',retries:0,attempts:[],note:''}:c);
       save();render();await sl(800);
       for(let i=0;i<3600;i++){if(stopF)break;await sl(1000)}
@@ -391,26 +436,26 @@ async function runCampaign(){
     for(const entry of snap){
       if(stopF)break;
       const fc=S.contacts.find(c=>c.id===entry.id)||entry;
-      if(fc.status==='paid'){addLog(fc.phone+' already paid — skip','ldim');continue}
+      if(fc.status==='paid'){addLog(fc.phone+' already paid - skip','ldim');continue}
       const now=Date.now(),wMs=gWin()*60000;
       const rec=(fc.attempts||[]).filter(t=>t>now-wMs).length;
       if(rec>=gRet()){
-        addLog(fc.phone+' — max '+gRet()+'× reached','err');
+        addLog(fc.phone+' - max '+gRet()+'x reached','err');
         updC(entry.id,{status:'failed',note:'Max retries'});S.stats.failed++;updStats();continue;
       }
       S.curId=entry.id;updC(entry.id,{status:'active'});S.stats.prompted++;updStats();
-      addLog('→ '+fc.phone+(fc.name?' ('+fc.name+')':'')+' · KSH '+S.amount+' · attempt '+(rec+1)+'/'+gRet(),'inf');
-      await showCD(fc.phone+(fc.name?' · '+fc.name:''),S.amount);
+      addLog('-> '+fc.phone+(fc.name?' ('+fc.name+')':'')+' - KSH '+S.amount+' - attempt '+(rec+1)+'/'+gRet(),'inf');
+      await showCD(fc.phone+(fc.name?' - '+fc.name:''),S.amount);
       if(stopF)break;
       if(skipId===entry.id){skipId=null;continue}
       const result=await doCharge(fc);
       const t2=Date.now();
       if(!result.ok){
-        addLog('✗ '+fc.phone+' — '+result.err,'err');
+        addLog('Fail '+fc.phone+' - '+result.err,'err');
         updC(entry.id,{status:'failed',retries:(fc.retries||0)+1,attempts:[...(fc.attempts||[]),t2],note:result.err});
         S.stats.failed++;updStats();await sl(400);continue;
       }
-      addLog('✓ '+fc.phone+' — PAID KSH '+S.amount,'ok');
+      addLog('Paid '+fc.phone+' - KSH '+S.amount,'ok');
       const rec2={id:uid(),phone:fc.phone,name:fc.name,amount:S.amount,ref:result.ref,time:ts(),date:ds()};
       S.records=[rec2,...S.records.slice(0,999)];
       updC(entry.id,{status:'paid',paidAt:ts(),ref:result.ref,attempts:[...(fc.attempts||[]),t2],totalPaid:(fc.totalPaid||0)+S.amount});
@@ -848,6 +893,8 @@ initInstallPrompt();
 </script>
 </body>
 </html>
+
+
 
 
 

@@ -1,4 +1,4 @@
-const CACHE = 'payprompt-ke-v9';
+const CACHE = 'payprompt-ke-v10';
 const ASSETS = [
   './',
   './index.html',
