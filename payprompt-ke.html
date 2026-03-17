@@ -5,6 +5,9 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>PayPrompt KE</title>
 <link href="https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=DM+Sans:wght@400;500;600&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#00a84f">
+<link rel="apple-touch-icon" href="icon-192.png">
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
 :root{
@@ -23,15 +26,17 @@
 html,body{height:100%;font-family:var(--sans);background:var(--bg);color:var(--text);font-size:14px}
 .app{display:flex;flex-direction:column;min-height:100vh}
 /* HEADER */
-.hdr{background:var(--black);color:#fff;padding:0 24px;display:flex;align-items:center;justify-content:space-between;gap:12px;height:58px;position:sticky;top:0;z-index:100;flex-wrap:wrap}
+.hdr{background:var(--s1);color:var(--text);padding:0 24px;display:flex;align-items:center;justify-content:space-between;gap:12px;height:58px;position:sticky;top:0;z-index:100;flex-wrap:wrap;border-bottom:2px solid var(--b1);box-shadow:0 2px 8px rgba(0,0,0,.06)}
+.hdr-right{display:flex;align-items:center;gap:10px;flex-wrap:wrap;justify-content:flex-end}
+.hcontrols{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
 .logo{font-family:var(--disp);font-size:18px;font-weight:800;color:var(--green);display:flex;align-items:center;gap:10px}
 .logo-mark{width:26px;height:26px;border-radius:50%;border:2.5px solid var(--green);display:flex;align-items:center;justify-content:center}
 .logo-inner{width:9px;height:9px;border-radius:50%;background:var(--green)}
 .hpills{display:flex;gap:7px;flex-wrap:wrap;align-items:center}
 .hpill{display:inline-flex;align-items:center;gap:5px;padding:5px 11px;border-radius:99px;font-size:11px;font-weight:600;font-family:var(--mono);border:1.5px solid}
-.hp-g{background:rgba(0,168,79,.15);border-color:#00a84f;color:#4fffaa}
-.hp-a{background:rgba(196,122,0,.15);border-color:#c47a00;color:#ffc96b}
-.hp-x{background:rgba(255,255,255,.08);border-color:rgba(255,255,255,.2);color:rgba(255,255,255,.6)}
+.hp-g{background:rgba(0,168,79,.12);border-color:#00a84f;color:var(--gt)}
+.hp-a{background:rgba(196,122,0,.12);border-color:#c47a00;color:var(--at)}
+.hp-x{background:var(--s2);border-color:var(--b2);color:var(--t2)}
 .ldot{width:7px;height:7px;border-radius:50%;background:currentColor;animation:blink 1.1s infinite}
 @keyframes blink{0%,100%{opacity:1}50%{opacity:.1}}
 /* NAV */
@@ -145,6 +150,11 @@ textarea{resize:vertical;min-height:90px;line-height:1.6}
 .cd-num{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-family:var(--disp);font-size:42px;font-weight:800;color:var(--green)}
 .cd-amt{font-family:var(--mono);font-size:20px;font-weight:700;color:var(--text);margin-bottom:6px}
 .cd-st{font-size:12px;color:var(--t2)}
+/* INSTALL PROMPT */
+.inst{position:fixed;inset:0;background:rgba(15,15,15,.4);display:flex;align-items:flex-end;justify-content:center;z-index:1100;padding:18px}
+.inst-card{background:var(--s1);border:1.5px solid var(--b1);border-radius:16px;padding:16px 18px;width:100%;max-width:420px;box-shadow:0 18px 50px rgba(0,0,0,.25)}
+.inst-title{font-family:var(--disp);font-size:16px;font-weight:800;margin-bottom:4px}
+.inst-sub{font-size:12px;color:var(--t2);line-height:1.5;margin-bottom:12px}
 /* CURR BANNER */
 .curr-ban{background:var(--ad);border:1.5px solid #e0c060;border-radius:10px;padding:14px 18px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px}
 /* EMPTY */
@@ -178,15 +188,32 @@ textarea{resize:vertical;min-height:90px;line-height:1.6}
       <div class="logo-mark"><div class="logo-inner"></div></div>
       PayPrompt KE
     </div>
-    <div class="hpills">
-      <span class="hpill hp-g" id="hdr-ksh"><span class="ldot"></span><span id="hksh">KSH 0</span></span>
-      <span class="hpill hp-x" id="hdr-cts">0 contacts</span>
-      <span class="hpill hp-a" id="hdr-live" style="display:none"><span class="ldot"></span>LIVE</span>
-      <span class="hpill hp-a" id="hdr-demo">DEMO</span>
+    <div class="hdr-right">
+      <div class="hcontrols">
+        <button class="btn btn-green btn-sm" id="hdr-start">Start</button>
+        <button class="btn btn-red btn-sm" id="hdr-stop">Stop</button>
+      </div>
+      <div class="hpills">
+        <span class="hpill hp-g" id="hdr-ksh"><span class="ldot"></span><span id="hksh">KSH 0</span></span>
+        <span class="hpill hp-x" id="hdr-cts">0 contacts</span>
+        <span class="hpill hp-a" id="hdr-live" style="display:none"><span class="ldot"></span>LIVE</span>
+        <span class="hpill hp-a" id="hdr-demo">DEMO</span>
+      </div>
     </div>
   </div>
   <div class="nav" id="nav"></div>
   <div id="page"></div>
+</div>
+<!-- INSTALL PROMPT -->
+<div class="inst" id="inst" style="display:none">
+  <div class="inst-card">
+    <div class="inst-title">Install PayPrompt KE</div>
+    <div class="inst-sub" id="inst-sub">Get quick access to this tool as an app.</div>
+    <div class="row">
+      <button class="btn btn-green btn-sm" id="inst-btn">Install</button>
+      <button class="btn btn-ghost btn-sm" id="inst-close">Not now</button>
+    </div>
+  </div>
 </div>
 <!-- COUNTDOWN -->
 <div class="cdov" id="cdov" style="display:none">
@@ -206,126 +233,44 @@ textarea{resize:vertical;min-height:90px;line-height:1.6}
   </div>
 </div>
 <script>
-// ────────────────────────────────────────────
-//  STORAGE
-// ────────────────────────────────────────────
-const SK={c:'kp4_c',r:'kp4_r',k:'kp4_k',a:'kp4_a',s:'kp4_s',cr:'kp4_cr',cw:'kp4_cw',dm:'kp4_dm'};
-const ls={
-  g(k,fb){try{const v=localStorage.getItem(k);return v!==null?JSON.parse(v):fb}catch{return fb}},
-  s(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch{}}
-};
-
-// ────────────────────────────────────────────
-//  STATE
-// ────────────────────────────────────────────
-const S={
-  contacts:ls.g(SK.c,demo()),
-  records: ls.g(SK.r,[]),
-  apiKey:  ls.g(SK.k,''),
-  amount:  ls.g(SK.a,50),
-  schedId: ls.g(SK.s,'3x1h'),
-  custRet: ls.g(SK.cr,3),
-  custWin: ls.g(SK.cw,60),
-  demoMode:ls.g(SK.dm,true),
-  tab:'dashboard',
-  running:false, curId:null,
-  logs:[], stats:{prompted:0,paid:0,failed:0,ksh:0},
-  search:'', filter:'all',
-  showKey:false, clearConfirm:false,
-};
-function save(){ls.s(SK.c,S.contacts);ls.s(SK.r,S.records);ls.s(SK.k,S.apiKey);ls.s(SK.a,S.amount);ls.s(SK.s,S.schedId);ls.s(SK.cr,S.custRet);ls.s(SK.cw,S.custWin);ls.s(SK.dm,S.demoMode)}
-
-// ────────────────────────────────────────────
-//  HELPERS
-// ────────────────────────────────────────────
-function fmtP(p){p=String(p).replace(/\D/g,'');if(p.startsWith('254'))p='0'+p.slice(3);if(!p.startsWith('0'))p='0'+p;return p.slice(0,12)}
-function validP(p){return /^07\d{8}$/.test(fmtP(p))}
-function uid(){return Date.now().toString(36)+Math.random().toString(36).slice(2,7)}
-function ts(){return new Date().toLocaleTimeString('en-KE',{hour12:false})}
-function ds(){return new Date().toLocaleDateString('en-KE',{day:'2-digit',month:'short',year:'numeric'})}
-function sl(ms){return new Promise(r=>setTimeout(r,ms))}
-function e(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;')}
-function mkC(ph,nm=''){return{id:uid(),phone:fmtP(ph),name:nm.trim(),status:'idle',retries:0,attempts:[],paidAt:null,ref:null,note:'',totalPaid:0}}
-function demo(){return['0712345678','0723456789','0700111222'].map(p=>mkC(p))}
-
-const SCHEDS=[
-  {id:'once',name:'One time',    desc:'Single prompt only',retries:1,winMin:60,cont:false,icon:'1×'},
-  {id:'3x1h',name:'3× per hour',desc:'3 prompts / 60 min',retries:3,winMin:60,cont:false,icon:'3×'},
-  {id:'3x24',name:'3× / hr 24/7',desc:'Runs every hour all day',retries:3,winMin:60,cont:true,icon:'∞'},
-  {id:'cust',name:'Custom',      desc:'Set your own rules',retries:null,winMin:null,cont:false,icon:'⚙'},
-];
-function gSched(){return SCHEDS.find(s=>s.id===S.schedId)||SCHEDS[1]}
-function gRet(){return S.schedId==='cust'?S.custRet:gSched().retries}
-function gWin(){return S.schedId==='cust'?S.custWin:gSched().winMin}
-function paid(){return S.contacts.filter(c=>c.status==='paid')}
-function failed(){return S.contacts.filter(c=>c.status==='failed')}
-function idleC(){return S.contacts.filter(c=>c.status==='idle')}
-function totalKsh(){return S.records.reduce((a,r)=>a+r.amount,0)}
-function todayR(){const d=ds();return S.records.filter(r=>r.date===d)}
-function pct(){return S.contacts.length?Math.round(paid().length/S.contacts.length*100):0}
-function filteredC(){
-  let l=S.contacts;
-  if(S.filter!=='all')l=l.filter(c=>c.status===S.filter);
-  if(S.search.trim())l=l.filter(c=>c.phone.includes(S.search)||c.name.toLowerCase().includes(S.search.toLowerCase()));
-  return l;
-}
-
-// ────────────────────────────────────────────
-//  RENDER
-// ────────────────────────────────────────────
-let rp=false;
-function render(){if(rp)return;rp=true;requestAnimationFrame(()=>{rp=false;_render()})}
-function _render(){
-  // header
-  document.getElementById('hksh').textContent='KSH '+totalKsh().toLocaleString();
-  document.getElementById('hdr-cts').textContent=S.contacts.length+' contacts';
-  document.getElementById('hdr-live').style.display=S.running?'inline-flex':'none';
-  document.getElementById('hdr-demo').style.display=S.demoMode?'inline-flex':'none';
-  // nav
-  const TABS=[{id:'dashboard',l:'Dashboard'},{id:'contacts',l:'Contacts',cnt:S.contacts.length},{id:'run',l:'Run',live:S.running},{id:'report',l:'Report'},{id:'settings',l:'Settings'}];
-  document.getElementById('nav').innerHTML=TABS.map(t=>`<div class="ni ${S.tab===t.id?'on':''}" data-tab="${t.id}">${t.l}${t.cnt!=null?`<span class="ni-cnt">${t.cnt}</span>`:''}${t.live?`<span class="ni-cnt" style="background:var(--gd);color:var(--gt)">●</span>`:''}</div>`).join('');
-  // page
-  const pg=document.getElementById('page');
-  if(S.tab==='dashboard')pg.innerHTML=dashH();
-  else if(S.tab==='contacts')pg.innerHTML=ctsH();
-  else if(S.tab==='run')pg.innerHTML=runH();
-  else if(S.tab==='report')pg.innerHTML=repH();
-  else pg.innerHTML=setH();
-  bind();
-  if(S.tab==='run'||S.tab==='dashboard'){const lb=document.getElementById('logbox');if(lb){lb.innerHTML=S.logs.slice(-30).map(l=>`<div class="l${l.t}">[${l.ts}] ${e(l.m)}</div>`).join('');lb.scrollTop=lb.scrollHeight}}
-}
-
-// ── LOG ──
-function addLog(m,t='inf'){
-  S.logs=[...S.logs.slice(-100),{ts:ts(),m,t}];
-  const lb=document.getElementById('logbox');
-  if(lb){const d=document.createElement('div');d.className='l'+t;d.textContent='['+S.logs[S.logs.length-1].ts+'] '+m;lb.appendChild(d);lb.scrollTop=lb.scrollHeight}
-}
-
 // ── COUNTDOWN ──
 let cdTmr=null;
+let cdResolve=null;
 function showCD(phone,amt){
   return new Promise(res=>{
+    cdResolve=res;
     document.getElementById('cd-ph').textContent=phone;
     document.getElementById('cd-am').textContent='KSH '+amt;
     document.getElementById('cdov').style.display='flex';
     let sec=3;
+    function finish(){
+      if(!cdResolve)return;
+      clearInterval(cdTmr);cdTmr=null;
+      document.getElementById('cdov').style.display='none';
+      const r=cdResolve;cdResolve=null;r();
+    }
     function tick(){
       document.getElementById('cd-n').textContent=sec;
       document.getElementById('cd-arc').style.strokeDashoffset=Math.round(289-289*((3-sec)/3));
-      if(sec<=0){clearInterval(cdTmr);document.getElementById('cdov').style.display='none';res()}
+      if(sec<=0){finish();return}
       sec--;
     }
     tick();cdTmr=setInterval(tick,1000);
   });
 }
-
+function cancelCD(){
+  if(!cdResolve)return;
+  clearInterval(cdTmr);cdTmr=null;
+  document.getElementById('cdov').style.display='none';
+  const r=cdResolve;cdResolve=null;r();
+}
 // ────────────────────────────────────────────
 //  CAMPAIGN
 // ────────────────────────────────────────────
 let stopF=false;
+let skipId=null;
 async function runCampaign(){
-  if(!S.demoMode&&!S.apiKey){alert('Add your Paystack key in Settings first.');S.tab='settings';render();return}
+  if(!S.demoMode&&S.useDirect&&!S.apiKey){alert('Add your Paystack secret key in Settings first.');S.tab='settings';render();return}
   if(!S.contacts.length){alert('Add contacts first.');S.tab='contacts';render();return}
   stopF=false;S.running=true;S.stats={prompted:0,paid:0,failed:0,ksh:0};
   S.tab='run';render();
@@ -353,6 +298,8 @@ async function runCampaign(){
       S.curId=entry.id;updC(entry.id,{status:'active'});S.stats.prompted++;updStats();
       addLog('→ '+fc.phone+(fc.name?' ('+fc.name+')':'')+' · KSH '+S.amount+' · attempt '+(rec+1)+'/'+gRet(),'inf');
       await showCD(fc.phone+(fc.name?' · '+fc.name:''),S.amount);
+      if(stopF)break;
+      if(skipId===entry.id){skipId=null;continue}
       const result=await doCharge(fc);
       const t2=Date.now();
       if(!result.ok){
@@ -368,8 +315,10 @@ async function runCampaign(){
     }
     round++;
   }while(sc.cont&&!stopF);
+  const wasStopped=stopF;
   S.curId=null;S.running=false;save();
-  addLog('Campaign complete.','ok');S.tab='report';render();
+  addLog(wasStopped?'Campaign stopped.':'Campaign complete.',wasStopped?'err':'ok');
+  S.tab=wasStopped?'run':'report';render();
 }
 function updC(id,patch){S.contacts=S.contacts.map(c=>c.id===id?{...c,...patch}:c);save();_updRow(id)}
 function _updRow(id){
@@ -397,17 +346,37 @@ async function doCharge(c){
     return{ok:false,err:'Insufficient M-Pesa balance'};
   }
   const mob=c.phone.replace(/^0/,'254');
+  const payload={email:mob+'@mpesa.ke',amount:S.amount*100,currency:'KES',mobile_money:{phone:mob,provider:'mpesa'}};
+  if(!S.useDirect){
+    try{
+      const res=await fetch('/api/charge',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});
+      const d=await res.json();
+      if(res.ok&&d.status&&d.data)return{ok:true,ref:d.data.reference};
+      return{ok:false,err:d.message||'Paystack error'};
+    }catch(ex){return{ok:false,err:ex.message}}
+  }
+  if(!S.apiKey)return{ok:false,err:'Missing secret key'};
   try{
     const res=await fetch('https://api.paystack.co/charge',{method:'POST',
       headers:{'Authorization':'Bearer '+S.apiKey,'Content-Type':'application/json'},
-      body:JSON.stringify({email:mob+'@mpesa.ke',amount:S.amount*100,currency:'KES',mobile_money:{phone:mob,provider:'mpesa'}})});
+      body:JSON.stringify(payload)});
     const d=await res.json();
     if(d.status&&d.data)return{ok:true,ref:d.data.reference};
     return{ok:false,err:d.message||'Paystack error'};
   }catch(ex){return{ok:false,err:ex.message}}
 }
-function stopCampaign(){stopF=true;S.running=false;S.curId=null;clearInterval(cdTmr);document.getElementById('cdov').style.display='none';addLog('Stopped by user.','err');render()}
-function skipCurrent(){if(!S.curId)return;const c=S.contacts.find(x=>x.id===S.curId);if(c)addLog('Skipped '+c.phone,'inf');updC(S.curId,{status:'failed',note:'Skipped'});stopF=true;setTimeout(()=>{if(S.running)stopF=false},300)}
+
+function stopCampaign(){stopF=true;S.running=false;S.curId=null;cancelCD();addLog('Stopped by user.','err');render()}
+function skipCurrent(){
+  if(!S.curId)return;
+  const c=S.contacts.find(x=>x.id===S.curId);
+  if(c)addLog('Skipped '+c.phone,'inf');
+  skipId=S.curId;
+  updC(S.curId,{status:'failed',note:'Skipped'});
+  S.stats.failed++;updStats();
+  S.curId=null;
+  cancelCD();
+}
 
 // ────────────────────────────────────────────
 //  HTML BUILDERS
@@ -574,14 +543,27 @@ function repH(){
 
 function setH(){
   return`<div class="main">
-  <div class="panel">
-    <div class="ptitle">Paystack API key</div>
-    <p style="font-size:13px;color:var(--t2);line-height:1.7;margin-bottom:12px">Enter your secret key (sk_live_… for production, sk_test_… for testing). Stored in your browser only — never sent anywhere else.</p>
+    <div class="panel">
+    <div class="ptitle">Paystack keys</div>
+    <p style="font-size:13px;color:var(--t2);line-height:1.7;margin-bottom:12px">Public key (pk_live_...) is safe to use in the browser. Secret key (sk_live_...) should be kept private. This page uses it directly only when demo mode is off.</p>
+    <label class="lbl">Public key</label>
+    <input id="pk-inp" placeholder="pk_live_xxxxxxxxxxxxxxxxxxxx" value="${e(S.publicKey)}" style="font-family:var(--mono);font-size:13px">
+    ${S.publicKey?`<div style="font-size:12px;color:var(--green);margin-top:8px;font-family:var(--mono)">Public key saved: ${e(S.publicKey.slice(0,10))}...${e(S.publicKey.slice(-4))}</div>`:''}
+    <div class="mt12"></div>
+    <label class="lbl">Secret key</label>
     <div style="position:relative">
       <input type="${S.showKey?'text':'password'}" id="key-inp" placeholder="sk_live_xxxxxxxxxxxxxxxxxxxx" value="${e(S.apiKey)}" style="font-family:var(--mono);font-size:13px;padding-right:56px">
       <button id="key-tog" style="position:absolute;right:12px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;color:var(--t2);font-size:12px;font-weight:700">${S.showKey?'Hide':'Show'}</button>
     </div>
-    ${S.apiKey?`<div style="font-size:12px;color:var(--green);margin-top:8px;font-family:var(--mono)">✓ Key saved: ${e(S.apiKey.slice(0,10))}…${e(S.apiKey.slice(-4))}</div>`:''}
+    ${S.apiKey?`<div style="font-size:12px;color:var(--green);margin-top:8px;font-family:var(--mono)">Secret key saved: ${e(S.apiKey.slice(0,10))}...${e(S.apiKey.slice(-4))}</div>`:''}
+  </div>
+  <div class="panel">
+    <div class="ptitle">Charge mode</div>
+    <div class="tog-row">
+      <div><div class="tog-lbl">Direct client charge (unsafe)</div><div class="tog-sub">Uses secret key in the browser. Use only for testing.</div></div>
+      <label class="tog"><input type="checkbox" id="direct-tog" ${S.useDirect?'checked':''}><span class="tog-sl"></span></label>
+    </div>
+    <div style="font-size:12px;color:var(--t2);margin-top:8px">For production, keep this off and set PAYSTACK_SECRET_KEY on Vercel.</div>
   </div>
   <div class="panel">
     <div class="ptitle">Mode</div>
@@ -664,8 +646,10 @@ function bind(){
   on('reset-all','click',()=>{S.contacts=S.contacts.map(c=>({...c,status:'idle',retries:0,attempts:[],note:'',paidAt:null,ref:null}));S.stats={prompted:0,paid:0,failed:0,ksh:0};S.logs=[];S.curId=null;save();render()});
   document.querySelectorAll('.retry-btn').forEach(el=>el.addEventListener('click',()=>{updC(el.dataset.id,{status:'idle',retries:0,attempts:[],note:''});render()}));
   // settings
+  on('pk-inp','input',ev=>{S.publicKey=ev.target.value;ls.s(SK.pk,S.publicKey)});
   on('key-inp','input',ev=>{S.apiKey=ev.target.value;ls.s(SK.k,S.apiKey)});
   on('key-tog','click',()=>{S.showKey=!S.showKey;render()});
+  on('direct-tog','change',ev=>{S.useDirect=ev.target.checked;save();render()});
   on('dm-tog','change',ev=>{S.demoMode=ev.target.checked;save();render()});
   document.querySelectorAll('[data-sched]').forEach(el=>el.addEventListener('click',()=>{S.schedId=el.dataset.sched;save();render()}));
   on('cret','input',ev=>{S.custRet=+ev.target.value;ls.s(SK.cr,S.custRet)});
@@ -680,7 +664,63 @@ function bind(){
   on('del-recs','click',()=>{if(confirm('Delete all '+S.records.length+' payment records?')){S.records=[];addLog('Records cleared','err');save();render()}});
 }
 
+let staticBound=false;
+let deferredPrompt=null;
+function showInstall(msg){
+  const el=document.getElementById('inst');
+  if(!el)return;
+  const sub=document.getElementById('inst-sub');
+  if(sub&&msg)sub.textContent=msg;
+  const btn=document.getElementById('inst-btn');
+  if(btn)btn.textContent=deferredPrompt?'Install':'Got it';
+  el.style.display='flex';
+}
+function hideInstall(){
+  const el=document.getElementById('inst');
+  if(el)el.style.display='none';
+}
+function bindStatic(){
+  if(staticBound)return;
+  staticBound=true;
+  on('hdr-start','click',runCampaign);
+  on('hdr-stop','click',stopCampaign);
+  on('inst-close','click',()=>{ls.s(SK.inst,true);hideInstall()});
+  on('inst-btn','click',async ()=>{
+    if(deferredPrompt){
+      deferredPrompt.prompt();
+      try{
+        const choice=await deferredPrompt.userChoice;
+        if(choice&&choice.outcome==='accepted')ls.s(SK.inst,true);
+      }catch{}
+      deferredPrompt=null;
+      hideInstall();
+      return;
+    }
+    ls.s(SK.inst,true);
+    hideInstall();
+  });
+  if('serviceWorker' in navigator){navigator.serviceWorker.register('sw.js').catch(()=>{})}
+}
+function initInstallPrompt(){
+  if(ls.g(SK.inst,false))return;
+  window.addEventListener('beforeinstallprompt',e=>{e.preventDefault();deferredPrompt=e});
+  window.addEventListener('appinstalled',()=>{ls.s(SK.inst,true);hideInstall();deferredPrompt=null});
+  setTimeout(()=>{
+    if(ls.g(SK.inst,false))return;
+    const msg=deferredPrompt?'Install the app for quicker access.':'To install, use your browser menu and choose Add to Home screen.';
+    showInstall(msg);
+  },3000);
+}
+
 render();
+bindStatic();
+initInstallPrompt();
 </script>
 </body>
 </html>
+
+
+
+
+
+
