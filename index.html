@@ -233,6 +233,107 @@ textarea{resize:vertical;min-height:90px;line-height:1.6}
   </div>
 </div>
 <script>
+
+// --------------------------------------------
+//  STORAGE
+// --------------------------------------------
+const SK={c:'kp4_c',r:'kp4_r',k:'kp4_k',pk:'kp4_pk',ud:'kp4_ud',inst:'kp4_inst',a:'kp4_a',s:'kp4_s',cr:'kp4_cr',cw:'kp4_cw',dm:'kp4_dm'};
+const ls={
+  g(k,fb){try{const v=localStorage.getItem(k);return v!==null?JSON.parse(v):fb}catch{return fb}},
+  s(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch{}}
+};
+
+// --------------------------------------------
+//  STATE
+// --------------------------------------------
+const S={
+  contacts:ls.g(SK.c,demo()),
+  records: ls.g(SK.r,[]),
+  apiKey:  ls.g(SK.k,''),
+  publicKey:ls.g(SK.pk,''),
+  useDirect:ls.g(SK.ud,false),
+  amount:  ls.g(SK.a,50),
+  schedId: ls.g(SK.s,'3x1h'),
+  custRet: ls.g(SK.cr,3),
+  custWin: ls.g(SK.cw,60),
+  demoMode:ls.g(SK.dm,true),
+  tab:'dashboard',
+  running:false, curId:null,
+  logs:[], stats:{prompted:0,paid:0,failed:0,ksh:0},
+  search:'', filter:'all',
+  showKey:false, clearConfirm:false,
+};
+function save(){ls.s(SK.c,S.contacts);ls.s(SK.r,S.records);ls.s(SK.k,S.apiKey);ls.s(SK.pk,S.publicKey);ls.s(SK.ud,S.useDirect);ls.s(SK.a,S.amount);ls.s(SK.s,S.schedId);ls.s(SK.cr,S.custRet);ls.s(SK.cw,S.custWin);ls.s(SK.dm,S.demoMode)}
+
+// --------------------------------------------
+//  HELPERS
+// --------------------------------------------
+function fmtP(p){p=String(p).replace(/\D/g,'');if(p.startsWith('254'))p='0'+p.slice(3);if(!p.startsWith('0'))p='0'+p;return p.slice(0,12)}
+function validP(p){return /^07\d{8}$/.test(fmtP(p))}
+function uid(){return Date.now().toString(36)+Math.random().toString(36).slice(2,7)}
+function ts(){return new Date().toLocaleTimeString('en-KE',{hour12:false})}
+function ds(){return new Date().toLocaleDateString('en-KE',{day:'2-digit',month:'short',year:'numeric'})}
+function sl(ms){return new Promise(r=>setTimeout(r,ms))}
+function e(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;')}
+function mkC(ph,nm=''){return{id:uid(),phone:fmtP(ph),name:nm.trim(),status:'idle',retries:0,attempts:[],paidAt:null,ref:null,note:'',totalPaid:0}}
+function demo(){return['0712345678','0723456789','0700111222'].map(p=>mkC(p))}
+
+const SCHEDS=[
+  {id:'once',name:'One time',    desc:'Single prompt only',retries:1,winMin:60,cont:false,icon:'1×'},
+  {id:'3x1h',name:'3× per hour',desc:'3 prompts / 60 min',retries:3,winMin:60,cont:false,icon:'3×'},
+  {id:'3x24',name:'3× / hr 24/7',desc:'Runs every hour all day',retries:3,winMin:60,cont:true,icon:'8'},
+  {id:'cust',name:'Custom',      desc:'Set your own rules',retries:null,winMin:null,cont:false,icon:'?'},
+];
+function gSched(){return SCHEDS.find(s=>s.id===S.schedId)||SCHEDS[1]}
+function gRet(){return S.schedId==='cust'?S.custRet:gSched().retries}
+function gWin(){return S.schedId==='cust'?S.custWin:gSched().winMin}
+function paid(){return S.contacts.filter(c=>c.status==='paid')}
+function failed(){return S.contacts.filter(c=>c.status==='failed')}
+function idleC(){return S.contacts.filter(c=>c.status==='idle')}
+function totalKsh(){return S.records.reduce((a,r)=>a+r.amount,0)}
+function todayR(){const d=ds();return S.records.filter(r=>r.date===d)}
+function pct(){return S.contacts.length?Math.round(paid().length/S.contacts.length*100):0}
+function filteredC(){
+  let l=S.contacts;
+  if(S.filter!=='all')l=l.filter(c=>c.status===S.filter);
+  if(S.search.trim())l=l.filter(c=>c.phone.includes(S.search)||c.name.toLowerCase().includes(S.search.toLowerCase()));
+  return l;
+}
+
+// --------------------------------------------
+//  RENDER
+// --------------------------------------------
+let rp=false;
+function render(){if(rp)return;rp=true;requestAnimationFrame(()=>{rp=false;_render()})}
+function _render(){
+  // header
+  document.getElementById('hksh').textContent='KSH '+totalKsh().toLocaleString();
+  document.getElementById('hdr-cts').textContent=S.contacts.length+' contacts';
+  document.getElementById('hdr-live').style.display=S.running?'inline-flex':'none';
+  document.getElementById('hdr-demo').style.display=S.demoMode?'inline-flex':'none';
+  const hs=document.getElementById('hdr-start');if(hs){hs.disabled=S.running||!S.contacts.length;hs.textContent=S.running?'Running...':'Start'}
+  const hp=document.getElementById('hdr-stop');if(hp){hp.disabled=!S.running}
+  // nav
+  const TABS=[{id:'dashboard',l:'Dashboard'},{id:'contacts',l:'Contacts',cnt:S.contacts.length},{id:'run',l:'Run',live:S.running},{id:'report',l:'Report'},{id:'settings',l:'Settings'}];
+  document.getElementById('nav').innerHTML=TABS.map(t=>`<div class="ni ${S.tab===t.id?'on':''}" data-tab="${t.id}">${t.l}${t.cnt!=null?`<span class="ni-cnt">${t.cnt}</span>`:''}${t.live?`<span class="ni-cnt" style="background:var(--gd);color:var(--gt)">ON</span>`:''}</div>`).join('');
+  // page
+  const pg=document.getElementById('page');
+  if(S.tab==='dashboard')pg.innerHTML=dashH();
+  else if(S.tab==='contacts')pg.innerHTML=ctsH();
+  else if(S.tab==='run')pg.innerHTML=runH();
+  else if(S.tab==='report')pg.innerHTML=repH();
+  else pg.innerHTML=setH();
+  bind();
+  if(S.tab==='run'||S.tab==='dashboard'){const lb=document.getElementById('logbox');if(lb){lb.innerHTML=S.logs.slice(-30).map(l=>`<div class="l${l.t}">[${l.ts}] ${e(l.m)}</div>`).join('');lb.scrollTop=lb.scrollHeight}}
+}
+
+// -- LOG --
+function addLog(m,t='inf'){
+  S.logs=[...S.logs.slice(-100),{ts:ts(),m,t}];
+  const lb=document.getElementById('logbox');
+  if(lb){const d=document.createElement('div');d.className='l'+t;d.textContent='['+S.logs[S.logs.length-1].ts+'] '+m;lb.appendChild(d);lb.scrollTop=lb.scrollHeight}
+}
+
 // ── COUNTDOWN ──
 let cdTmr=null;
 let cdResolve=null;
