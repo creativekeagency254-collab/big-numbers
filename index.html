@@ -423,20 +423,36 @@ async function runCampaign(){
   addLog(wasStopped?'Campaign stopped.':'Campaign complete.',wasStopped?'err':'ok');
   S.tab=wasStopped?'run':'report';render();
 }
+let testBusy=false;
+async function runLiveTestCore(phone,amt){
+  addLog('Live test → '+phone+' · KSH '+amt,'inf');
+  await showCD(phone,amt);
+  const res=await doCharge({phone},amt);
+  if(!res.ok){addLog('Live test ✕ '+phone+' — '+res.err,'err');return false}
+  addLog('Live test ✓ '+phone+' — PAID KSH '+amt,'ok');
+  const rec2={id:uid(),phone:phone,name:'',amount:amt,ref:res.ref,time:ts(),date:ds()};
+  S.records=[rec2,...S.records.slice(0,999)];
+  save();render();
+  return true;
+}
 async function runLiveTest(){
   const raw=(document.getElementById('test-ph')?.value||'').trim();
   const amt=+((document.getElementById('test-amt')?.value||'').trim())||S.amount;
   if(!raw||!validP(raw)){alert('Enter a valid phone number');addLog('Invalid test number: '+raw,'err');return}
   if(!(amt>0)){alert('Enter a valid amount');return}
   const phone=fmtP(raw);
-  addLog('Live test → '+phone+' · KSH '+amt,'inf');
-  await showCD(phone,amt);
-  const res=await doCharge({phone},amt);
-  if(!res.ok){addLog('Live test ✕ '+phone+' — '+res.err,'err');return}
-  addLog('Live test ✓ '+phone+' — PAID KSH '+amt,'ok');
-  const rec2={id:uid(),phone:phone,name:'',amount:amt,ref:res.ref,time:ts(),date:ds()};
-  S.records=[rec2,...S.records.slice(0,999)];
-  save();render();
+  await runLiveTestCore(phone,amt);
+}
+async function runLiveTestBatch(count=5){
+  const raw=(document.getElementById('test-ph')?.value||'').trim();
+  const amt=+((document.getElementById('test-amt')?.value||'').trim())||S.amount;
+  if(!raw||!validP(raw)){alert('Enter a valid phone number');addLog('Invalid test number: '+raw,'err');return}
+  if(!(amt>0)){alert('Enter a valid amount');return}
+  const phone=fmtP(raw);
+  for(let i=0;i<count;i++){
+    await runLiveTestCore(phone,amt);
+    await sl(600);
+  }
 }
 function updC(id,patch){S.contacts=S.contacts.map(c=>c.id===id?{...c,...patch}:c);save();_updRow(id)}
 function _updRow(id){
@@ -540,6 +556,7 @@ function dashH(){
         <input id="test-amt" type="number" min="1" placeholder="Amount (KSH)" value="${S.amount}">
       </div>
       <button class="btn btn-ghost btn-full mt8" id="test-run">⚡ Run live test</button>
+      <button class="btn btn-ghost btn-full mt8" id="test-run-5">Run 5 live tests</button>
     </div>
     <div class="panel">
       <div class="ptitle">Recent payments <span style="margin-left:auto;font-family:var(--sans);font-size:12px;text-transform:none;letter-spacing:0;font-weight:500;color:var(--t2)">${tr.length} today</span></div>
@@ -719,7 +736,8 @@ function bind(){
   document.querySelectorAll('[data-tab]').forEach(el=>el.addEventListener('click',()=>{S.tab=el.dataset.tab;render()}));
   // dashboard
   on('run-btn','click',runCampaign);
-  on('test-run','click',runLiveTest);
+  on('test-run','click',async ()=>{if(testBusy)return;testBusy=true;await runLiveTest();testBusy=false});
+  on('test-run-5','click',async ()=>{if(testBusy)return;testBusy=true;await runLiveTestBatch(5);testBusy=false});
   document.querySelectorAll('.apill').forEach(el=>el.addEventListener('click',()=>{S.amount=+el.dataset.amt;save();render()}));
   on('set-amt','click',()=>{const v=+document.getElementById('camt')?.value;if(v>0){S.amount=v;save();render()}});
   on('sched-sel','change',ev=>{S.schedId=ev.target.value;save();render()});
