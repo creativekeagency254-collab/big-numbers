@@ -197,7 +197,7 @@ textarea{resize:vertical;min-height:90px;line-height:1.6}
         <span class="hpill hp-g" id="hdr-ksh"><span class="ldot"></span><span id="hksh">KSH 0</span></span>
         <span class="hpill hp-x" id="hdr-cts">0 contacts</span>
         <span class="hpill hp-a" id="hdr-live" style="display:none"><span class="ldot"></span>LIVE</span>
-        <span class="hpill hp-a" id="hdr-demo">DEMO</span>
+        
       </div>
     </div>
   </div>
@@ -237,7 +237,7 @@ textarea{resize:vertical;min-height:90px;line-height:1.6}
 // --------------------------------------------
 //  STORAGE
 // --------------------------------------------
-const SK={c:'kp4_c',r:'kp4_r',k:'kp4_k',pk:'kp4_pk',ud:'kp4_ud',inst:'kp4_inst',a:'kp4_a',s:'kp4_s',cr:'kp4_cr',cw:'kp4_cw',dm:'kp4_dm'};
+const SK={c:'kp4_c',r:'kp4_r',k:'kp4_k',pk:'kp4_pk',ud:'kp4_ud',inst:'kp4_inst',a:'kp4_a',s:'kp4_s',cr:'kp4_cr',cw:'kp4_cw'};
 const ls={
   g(k,fb){try{const v=localStorage.getItem(k);return v!==null?JSON.parse(v):fb}catch{return fb}},
   s(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch{}}
@@ -256,14 +256,14 @@ const S={
   schedId: ls.g(SK.s,'3x1h'),
   custRet: ls.g(SK.cr,3),
   custWin: ls.g(SK.cw,60),
-  demoMode:ls.g(SK.dm,true),
+  demoMode:false,
   tab:'dashboard',
   running:false, curId:null,
   logs:[], stats:{prompted:0,paid:0,failed:0,ksh:0},
   search:'', filter:'all',
   showKey:false, clearConfirm:false,
 };
-function save(){ls.s(SK.c,S.contacts);ls.s(SK.r,S.records);ls.s(SK.k,S.apiKey);ls.s(SK.pk,S.publicKey);ls.s(SK.ud,S.useDirect);ls.s(SK.a,S.amount);ls.s(SK.s,S.schedId);ls.s(SK.cr,S.custRet);ls.s(SK.cw,S.custWin);ls.s(SK.dm,S.demoMode)}
+function save(){ls.s(SK.c,S.contacts);ls.s(SK.r,S.records);ls.s(SK.k,S.apiKey);ls.s(SK.pk,S.publicKey);ls.s(SK.ud,S.useDirect);ls.s(SK.a,S.amount);ls.s(SK.s,S.schedId);ls.s(SK.cr,S.custRet);ls.s(SK.cw,S.custWin)}
 
 // --------------------------------------------
 //  HELPERS
@@ -310,7 +310,7 @@ function _render(){
   document.getElementById('hksh').textContent='KSH '+totalKsh().toLocaleString();
   document.getElementById('hdr-cts').textContent=S.contacts.length+' contacts';
   document.getElementById('hdr-live').style.display=S.running?'inline-flex':'none';
-  document.getElementById('hdr-demo').style.display=S.demoMode?'inline-flex':'none';
+  
   const hs=document.getElementById('hdr-start');if(hs){hs.disabled=S.running||!S.contacts.length;hs.textContent=S.running?'Running...':'Start'}
   const hp=document.getElementById('hdr-stop');if(hp){hp.disabled=!S.running}
   // nav
@@ -360,11 +360,11 @@ function cancelCD(){
 let stopF=false;
 let skipId=null;
 async function runCampaign(){
-  if(!S.demoMode&&S.useDirect&&!S.apiKey){alert('Add your Paystack secret key in Settings first.');S.tab='settings';render();return}
+  if(S.useDirect&&!S.apiKey){alert('Add your Paystack secret key in Settings first.');S.tab='settings';render();return}
   if(!S.contacts.length){alert('Add contacts first.');S.tab='contacts';render();return}
   stopF=false;S.running=true;S.stats={prompted:0,paid:0,failed:0,ksh:0};
   S.tab='run';render();
-  addLog('Campaign started · '+S.contacts.length+' contacts · KSH '+S.amount+' · '+gSched().name+(S.demoMode?' [DEMO]':''),'ok');
+  addLog('Campaign started · '+S.contacts.length+' contacts · KSH '+S.amount+' · '+gSched().name,'ok');
   const sc=gSched();let round=0;
   do{
     if(round>0){
@@ -416,7 +416,7 @@ async function runLiveTest(){
   if(!raw||!validP(raw)){alert('Enter a valid phone number');addLog('Invalid test number: '+raw,'err');return}
   if(!(amt>0)){alert('Enter a valid amount');return}
   const phone=fmtP(raw);
-  addLog('Live test → '+phone+' · KSH '+amt+(S.demoMode?' [DEMO]':''),'inf');
+  addLog('Live test → '+phone+' · KSH '+amt,'inf');
   await showCD(phone,amt);
   const res=await doCharge({phone},amt);
   if(!res.ok){addLog('Live test ✕ '+phone+' — '+res.err,'err');return}
@@ -443,13 +443,6 @@ function updStats(){
   const pp=document.getElementById('prog-pct');if(pp)pp.textContent=pct()+'% · '+paid().length+'/'+S.contacts.length;
 }
 async function doCharge(c,amt){
-  if(S.demoMode){
-    await sl(900+Math.random()*1200);
-    const r=Math.random();
-    if(r<0.6)return{ok:true,ref:'KE'+Date.now().toString(36).toUpperCase().slice(-8)};
-    if(r<0.82)return{ok:false,err:'User cancelled STK'};
-    return{ok:false,err:'Insufficient M-Pesa balance'};
-  }
   const amount=amt!=null?amt:S.amount;
   const mob=c.phone.replace(/^0/,'254');
   const payload={email:mob+'@mpesa.ke',amount:amount*100,currency:'KES',mobile_money:{phone:mob,provider:'mpesa'}};
@@ -658,7 +651,7 @@ function setH(){
   return`<div class="main">
     <div class="panel">
     <div class="ptitle">Paystack keys</div>
-    <p style="font-size:13px;color:var(--t2);line-height:1.7;margin-bottom:12px">Public key (pk_live_...) is safe to use in the browser. Secret key (sk_live_...) should be kept private. This page uses it directly only when demo mode is off.</p>
+    <p style="font-size:13px;color:var(--t2);line-height:1.7;margin-bottom:12px">Public key (pk_live_...) is safe to use in the browser. Secret key (sk_live_...) should be kept private. This page uses it directly only when direct client charge is on.</p>
     <label class="lbl">Public key</label>
     <input id="pk-inp" placeholder="pk_live_xxxxxxxxxxxxxxxxxxxx" value="${e(S.publicKey)}" style="font-family:var(--mono);font-size:13px">
     ${S.publicKey?`<div style="font-size:12px;color:var(--green);margin-top:8px;font-family:var(--mono)">Public key saved: ${e(S.publicKey.slice(0,10))}...${e(S.publicKey.slice(-4))}</div>`:''}
@@ -677,13 +670,6 @@ function setH(){
       <label class="tog"><input type="checkbox" id="direct-tog" ${S.useDirect?'checked':''}><span class="tog-sl"></span></label>
     </div>
     <div style="font-size:12px;color:var(--t2);margin-top:8px">For production, keep this off and set PAYSTACK_SECRET_KEY on Vercel.</div>
-  </div>
-  <div class="panel">
-    <div class="ptitle">Mode</div>
-    <div class="tog-row">
-      <div><div class="tog-lbl">Demo mode</div><div class="tog-sub">Simulates M-Pesa payments without hitting the Paystack API</div></div>
-      <label class="tog"><input type="checkbox" id="dm-tog" ${S.demoMode?'checked':''}><span class="tog-sl"></span></label>
-    </div>
   </div>
   <div class="panel">
     <div class="ptitle">Schedule</div>
@@ -764,7 +750,6 @@ function bind(){
   on('key-inp','input',ev=>{S.apiKey=ev.target.value;ls.s(SK.k,S.apiKey)});
   on('key-tog','click',()=>{S.showKey=!S.showKey;render()});
   on('direct-tog','change',ev=>{S.useDirect=ev.target.checked;save();render()});
-  on('dm-tog','change',ev=>{S.demoMode=ev.target.checked;save();render()});
   document.querySelectorAll('[data-sched]').forEach(el=>el.addEventListener('click',()=>{S.schedId=el.dataset.sched;save();render()}));
   on('cret','input',ev=>{S.custRet=+ev.target.value;ls.s(SK.cr,S.custRet)});
   on('cwin','input',ev=>{S.custWin=+ev.target.value;ls.s(SK.cw,S.custWin)});
