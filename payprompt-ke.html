@@ -268,8 +268,15 @@ function save(){ls.s(SK.c,S.contacts);ls.s(SK.r,S.records);ls.s(SK.k,S.apiKey);l
 // --------------------------------------------
 //  HELPERS
 // --------------------------------------------
-function fmtP(p){p=String(p).replace(/\D/g,'');if(p.startsWith('254'))p='0'+p.slice(3);if(!p.startsWith('0'))p='0'+p;return p.slice(0,12)}
-function validP(p){return /^07\d{8}$/.test(fmtP(p))}
+function fmtP(p){
+  p=String(p).replace(/\D/g,'');
+  if(p.startsWith('254'))p='0'+p.slice(3);
+  if(p.startsWith('7')&&p.length===9)p='0'+p;
+  if(p.startsWith('1')&&p.length===9)p='0'+p;
+  if(!p.startsWith('0'))p='0'+p;
+  return p.slice(0,10);
+}
+function validP(p){return /^0[17]\d{8}$/.test(fmtP(p))}
 function uid(){return Date.now().toString(36)+Math.random().toString(36).slice(2,7)}
 function ts(){return new Date().toLocaleTimeString('en-KE',{hour12:false})}
 function ds(){return new Date().toLocaleDateString('en-KE',{day:'2-digit',month:'short',year:'numeric'})}
