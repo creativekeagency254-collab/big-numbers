@@ -237,7 +237,7 @@ textarea{resize:vertical;min-height:90px;line-height:1.6}
 // --------------------------------------------
 //  STORAGE
 // --------------------------------------------
-const SK={c:'kp4_c',r:'kp4_r',k:'kp4_k',pk:'kp4_pk',ud:'kp4_ud',inst:'kp4_inst',a:'kp4_a',s:'kp4_s',cr:'kp4_cr',cw:'kp4_cw'};
+const SK={c:'kp4_c',r:'kp4_r',k:'kp4_k',pk:'kp4_pk',ud:'kp4_ud',inst:'kp4_inst',a:'kp4_a',s:'kp4_s',cr:'kp4_cr',cw:'kp4_cw',dl:'kp4_dl'};
 const ls={
   g(k,fb){try{const v=localStorage.getItem(k);return v!==null?JSON.parse(v):fb}catch{return fb}},
   s(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch{}}
@@ -253,6 +253,7 @@ const S={
   publicKey:ls.g(SK.pk,''),
   useDirect:ls.g(SK.ud,false),
   amount:  ls.g(SK.a,50),
+  delayMs: ls.g(SK.dl,0),
   schedId: ls.g(SK.s,'3x1h'),
   custRet: ls.g(SK.cr,3),
   custWin: ls.g(SK.cw,60),
@@ -263,7 +264,7 @@ const S={
   search:'', filter:'all',
   showKey:false, clearConfirm:false,
 };
-function save(){ls.s(SK.c,S.contacts);ls.s(SK.r,S.records);ls.s(SK.k,S.apiKey);ls.s(SK.pk,S.publicKey);ls.s(SK.ud,S.useDirect);ls.s(SK.a,S.amount);ls.s(SK.s,S.schedId);ls.s(SK.cr,S.custRet);ls.s(SK.cw,S.custWin)}
+function save(){ls.s(SK.c,S.contacts);ls.s(SK.r,S.records);ls.s(SK.k,S.apiKey);ls.s(SK.pk,S.publicKey);ls.s(SK.ud,S.useDirect);ls.s(SK.a,S.amount);ls.s(SK.s,S.schedId);ls.s(SK.cr,S.custRet);ls.s(SK.cw,S.custWin);ls.s(SK.dl,S.delayMs)}
 
 // --------------------------------------------
 //  HELPERS
@@ -287,6 +288,7 @@ function uid(){return Date.now().toString(36)+Math.random().toString(36).slice(2
 function ts(){return new Date().toLocaleTimeString('en-KE',{hour12:false})}
 function ds(){return new Date().toLocaleDateString('en-KE',{day:'2-digit',month:'short',year:'numeric'})}
 function sl(ms){return new Promise(r=>setTimeout(r,ms))}
+function sendDelay(){const d=Math.max(0,Number(S.delayMs)||0);return d?sl(d):Promise.resolve()}
 function e(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;')}
 function mkC(ph,nm=''){return{id:uid(),phone:fmtP(ph),name:nm.trim(),status:'idle',retries:0,attempts:[],paidAt:null,ref:null,note:'',totalPaid:0}}
 function demo(){return['0712345678','0723456789','0700111222'].map(p=>mkC(p))}
@@ -357,10 +359,16 @@ function showCD(phone,amt){
     cdResolve=res;
     const ov=document.getElementById('cdov');
     if(ov)ov.style.display='none';
+    const d=Math.max(0,Number(S.delayMs)||0);
+    if(d===0){
+      if(!cdResolve)return;
+      const r=cdResolve;cdResolve=null;r();
+      return;
+    }
     cdTmr=setTimeout(()=>{
       if(!cdResolve)return;
       const r=cdResolve;cdResolve=null;r();
-    },500);
+    },d);
   });
 }
 function cancelCD(){
@@ -453,13 +461,13 @@ async function runCampaign(){
       if(!result.ok){
         addLog('Fail '+fc.phone+' - '+result.err,'err');
         updC(entry.id,{status:'failed',retries:(fc.retries||0)+1,attempts:[...(fc.attempts||[]),t2],note:result.err});
-        S.stats.failed++;updStats();await sl(400);continue;
+        S.stats.failed++;updStats();await sendDelay();continue;
       }
       addLog('Paid '+fc.phone+' - KSH '+S.amount,'ok');
       const rec2={id:uid(),phone:fc.phone,name:fc.name,amount:S.amount,ref:result.ref,time:ts(),date:ds()};
       S.records=[rec2,...S.records.slice(0,999)];
       updC(entry.id,{status:'paid',paidAt:ts(),ref:result.ref,attempts:[...(fc.attempts||[]),t2],totalPaid:(fc.totalPaid||0)+S.amount});
-      S.stats.paid++;S.stats.ksh+=S.amount;updStats();save();await sl(300);
+      S.stats.paid++;S.stats.ksh+=S.amount;updStats();save();await sendDelay();
     }
     round++;
   }while(sc.cont&&!stopF);
@@ -496,7 +504,7 @@ async function runLiveTestBatch(count=5){
   const phone=fmtP(raw);
   for(let i=0;i<count;i++){
     await runLiveTestCore(phone,amt);
-    await sl(600);
+    await sendDelay();
   }
 }
 function updC(id,patch){S.contacts=S.contacts.map(c=>c.id===id?{...c,...patch}:c);save();_updRow(id)}
@@ -747,6 +755,19 @@ function setH(){
     <div style="font-size:12px;color:var(--t2);margin-top:8px">For production, keep this off and set PAYSTACK_SECRET_KEY on Vercel.</div>
   </div>
   <div class="panel">
+    <div class="ptitle">Send speed</div>
+    <div class="row">
+      <div style="flex:1">
+        <label class="lbl">Delay between prompts (ms)</label>
+        <input type="number" id="delay-ms" min="0" max="60000" value="${S.delayMs}" style="font-family:var(--mono);font-size:13px">
+      </div>
+    </div>
+    <div class="apills mt8">
+      ${[0,100,250,500,1000].map(d=>`<div class="apill ${S.delayMs===d?'on':''}" data-delay="${d}">${d} ms</div>`).join('')}
+    </div>
+    <div style="font-size:12px;color:var(--t2);margin-top:8px">Set 0 for true back-to-back sending.</div>
+  </div>
+  <div class="panel">
     <div class="ptitle">Schedule</div>
     <div class="sgrid">${SCHEDS.map(s=>`<div class="sc ${S.schedId===s.id?'on':''}" data-sched="${s.id}"><div class="sc-icon">${s.icon}</div><div class="sc-name">${e(s.name)}</div><div class="sc-desc">${e(s.desc)}</div></div>`).join('')}</div>
     ${S.schedId==='cust'?`<div class="g2 mt12">
@@ -826,7 +847,9 @@ function bind(){
   on('key-inp','input',ev=>{S.apiKey=ev.target.value;ls.s(SK.k,S.apiKey)});
   on('key-tog','click',()=>{S.showKey=!S.showKey;render()});
   on('direct-tog','change',ev=>{S.useDirect=ev.target.checked;save();render()});
+  on('delay-ms','input',ev=>{S.delayMs=Math.max(0,+ev.target.value||0);save()});
   document.querySelectorAll('[data-sched]').forEach(el=>el.addEventListener('click',()=>{S.schedId=el.dataset.sched;save();render()}));
+  document.querySelectorAll('[data-delay]').forEach(el=>el.addEventListener('click',()=>{S.delayMs=+el.dataset.delay||0;const i=document.getElementById('delay-ms');if(i)i.value=S.delayMs;save();render()}));
   on('cret','input',ev=>{S.custRet=+ev.target.value;ls.s(SK.cr,S.custRet)});
   on('cwin','input',ev=>{S.custWin=+ev.target.value;ls.s(SK.cw,S.custWin)});
   on('csv-btn','click',()=>{
