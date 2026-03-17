@@ -239,30 +239,19 @@ let cdResolve=null;
 function showCD(phone,amt){
   return new Promise(res=>{
     cdResolve=res;
-    document.getElementById('cd-ph').textContent=phone;
-    document.getElementById('cd-am').textContent='KSH '+amt;
-    document.getElementById('cdov').style.display='flex';
-    let sec=3;
-    function finish(){
+    const ov=document.getElementById('cdov');
+    if(ov)ov.style.display='none';
+    cdTmr=setTimeout(()=>{
       if(!cdResolve)return;
-      clearInterval(cdTmr);cdTmr=null;
-      document.getElementById('cdov').style.display='none';
       const r=cdResolve;cdResolve=null;r();
-    }
-    function tick(){
-      document.getElementById('cd-n').textContent=sec;
-      document.getElementById('cd-arc').style.strokeDashoffset=Math.round(289-289*((3-sec)/3));
-      if(sec<=0){finish();return}
-      sec--;
-    }
-    tick();cdTmr=setInterval(tick,1000);
+    },500);
   });
 }
 function cancelCD(){
-  if(!cdResolve)return;
-  clearInterval(cdTmr);cdTmr=null;
-  document.getElementById('cdov').style.display='none';
-  const r=cdResolve;cdResolve=null;r();
+  if(cdTmr){clearTimeout(cdTmr);cdTmr=null;}
+  if(cdResolve){const r=cdResolve;cdResolve=null;r();}
+  const ov=document.getElementById('cdov');
+  if(ov)ov.style.display='none';
 }
 // ────────────────────────────────────────────
 //  CAMPAIGN
@@ -320,6 +309,21 @@ async function runCampaign(){
   addLog(wasStopped?'Campaign stopped.':'Campaign complete.',wasStopped?'err':'ok');
   S.tab=wasStopped?'run':'report';render();
 }
+async function runLiveTest(){
+  const raw=(document.getElementById('test-ph')?.value||'').trim();
+  const amt=+((document.getElementById('test-amt')?.value||'').trim())||S.amount;
+  if(!raw||!validP(raw)){alert('Enter a valid phone number');addLog('Invalid test number: '+raw,'err');return}
+  if(!(amt>0)){alert('Enter a valid amount');return}
+  const phone=fmtP(raw);
+  addLog('Live test → '+phone+' · KSH '+amt+(S.demoMode?' [DEMO]':''),'inf');
+  await showCD(phone,amt);
+  const res=await doCharge({phone},amt);
+  if(!res.ok){addLog('Live test ✕ '+phone+' — '+res.err,'err');return}
+  addLog('Live test ✓ '+phone+' — PAID KSH '+amt,'ok');
+  const rec2={id:uid(),phone:phone,name:'',amount:amt,ref:res.ref,time:ts(),date:ds()};
+  S.records=[rec2,...S.records.slice(0,999)];
+  save();render();
+}
 function updC(id,patch){S.contacts=S.contacts.map(c=>c.id===id?{...c,...patch}:c);save();_updRow(id)}
 function _updRow(id){
   const c=S.contacts.find(x=>x.id===id);const row=document.querySelector(`.crow[data-id="${id}"]`);
@@ -337,7 +341,7 @@ function updStats(){
   const pf=document.getElementById('prog-fill');if(pf)pf.style.width=pct()+'%';
   const pp=document.getElementById('prog-pct');if(pp)pp.textContent=pct()+'% · '+paid().length+'/'+S.contacts.length;
 }
-async function doCharge(c){
+async function doCharge(c,amt){
   if(S.demoMode){
     await sl(900+Math.random()*1200);
     const r=Math.random();
@@ -345,8 +349,9 @@ async function doCharge(c){
     if(r<0.82)return{ok:false,err:'User cancelled STK'};
     return{ok:false,err:'Insufficient M-Pesa balance'};
   }
+  const amount=amt!=null?amt:S.amount;
   const mob=c.phone.replace(/^0/,'254');
-  const payload={email:mob+'@mpesa.ke',amount:S.amount*100,currency:'KES',mobile_money:{phone:mob,provider:'mpesa'}};
+  const payload={email:mob+'@mpesa.ke',amount:amount*100,currency:'KES',mobile_money:{phone:mob,provider:'mpesa'}};
   if(!S.useDirect){
     try{
       const res=await fetch('/api/charge',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});
@@ -421,6 +426,13 @@ function dashH(){
       <button class="btn btn-green btn-full btn-lg mt12" id="run-btn" ${S.running||!S.contacts.length?'disabled':''}>
         ${S.running?'<span class="spin">◌</span>  Campaign running…':'▶  Start campaign — '+S.contacts.length+' contacts'}
       </button>
+      <hr class="div">
+      <div class="ptitle">Live test</div>
+      <div class="g2">
+        <input id="test-ph" placeholder="07XX XXX XXX">
+        <input id="test-amt" type="number" min="1" placeholder="Amount (KSH)" value="${S.amount}">
+      </div>
+      <button class="btn btn-ghost btn-full mt8" id="test-run">⚡ Run live test</button>
     </div>
     <div class="panel">
       <div class="ptitle">Recent payments <span style="margin-left:auto;font-family:var(--sans);font-size:12px;text-transform:none;letter-spacing:0;font-weight:500;color:var(--t2)">${tr.length} today</span></div>
@@ -607,6 +619,7 @@ function bind(){
   document.querySelectorAll('[data-tab]').forEach(el=>el.addEventListener('click',()=>{S.tab=el.dataset.tab;render()}));
   // dashboard
   on('run-btn','click',runCampaign);
+  on('test-run','click',runLiveTest);
   document.querySelectorAll('.apill').forEach(el=>el.addEventListener('click',()=>{S.amount=+el.dataset.amt;save();render()}));
   on('set-amt','click',()=>{const v=+document.getElementById('camt')?.value;if(v>0){S.amount=v;save();render()}});
   on('sched-sel','change',ev=>{S.schedId=ev.target.value;save();render()});
