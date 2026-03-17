@@ -288,7 +288,7 @@ function uid(){return Date.now().toString(36)+Math.random().toString(36).slice(2
 function ts(){return new Date().toLocaleTimeString('en-KE',{hour12:false})}
 function ds(){return new Date().toLocaleDateString('en-KE',{day:'2-digit',month:'short',year:'numeric'})}
 function sl(ms){return new Promise(r=>setTimeout(r,ms))}
-function sendDelay(){const d=Math.max(0,Number(S.delayMs)||0);return d?sl(d):Promise.resolve()}
+function sendDelay(){const d=Math.max(0,Number(S.delayMs)||0);return d?sl(d):Promise.resolve()}\nfunction waitWithStop(sec){const s=Math.max(0,Math.floor(sec||0));if(!s)return Promise.resolve();return new Promise(async r=>{for(let i=0;i<s;i++){if(stopF)break;await sl(1000)}r()})}\n
 function e(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;')}
 function mkC(ph,nm=''){return{id:uid(),phone:fmtP(ph),name:nm.trim(),status:'idle',retries:0,attempts:[],paidAt:null,ref:null,note:'',totalPaid:0}}
 function demo(){return['0712345678','0723456789','0700111222'].map(p=>mkC(p))}
@@ -296,9 +296,11 @@ function demo(){return['0712345678','0723456789','0700111222'].map(p=>mkC(p))}
 const SCHEDS=[
   {id:'once',name:'One time',    desc:'Single prompt only',retries:1,winMin:60,cont:false,icon:'1x'},
   {id:'3x1h',name:'3x per hour',desc:'3 prompts / 60 min',retries:3,winMin:60,cont:false,icon:'3x'},
-  {id:'3x24',name:'3x / hr 24/7',desc:'Runs every hour all day',retries:3,winMin:60,cont:true,icon:'8'},
-  {id:'1m1h',name:'Every minute (1 hour)',desc:'Blast all contacts every 60s for 1 hour',retries:60,winMin:60,cont:false,mode:'blast',intervalSec:60,maxRounds:60,icon:'1m'},
-  {id:'1m24',name:'Every minute (all day)',desc:'Blast all contacts every 60s for 24 hours',retries:1440,winMin:1440,cont:false,mode:'blast',intervalSec:60,maxRounds:1440,icon:'24h'},
+  {id:'3x24',name:'3x / hr 24/7',desc:'Runs every hour all day',retries:3,winMin:60,cont:true,intervalSec:3600,resetEachRound:true,icon:'8'},
+  {id:'1m1h_seq',name:'Every minute (1 hour)',desc:'Sequential list every 60s for 1 hour',retries:60,winMin:60,cont:false,intervalSec:60,maxRounds:60,resetEachRound:false,icon:'1m'},
+  {id:'1m24_seq',name:'Every minute (all day)',desc:'Sequential list every 60s for 24 hours',retries:1440,winMin:1440,cont:false,intervalSec:60,maxRounds:1440,resetEachRound:false,icon:'24h'},
+  {id:'1m1h',name:'Every minute (1 hour) - blast',desc:'All contacts at once every 60s for 1 hour',retries:60,winMin:60,cont:false,mode:'blast',intervalSec:60,maxRounds:60,resetEachRound:false,icon:'1m!'},
+  {id:'1m24',name:'Every minute (all day) - blast',desc:'All contacts at once every 60s for 24 hours',retries:1440,winMin:1440,cont:false,mode:'blast',intervalSec:60,maxRounds:1440,resetEachRound:false,icon:'24h!'},
   {id:'cust',name:'Custom',      desc:'Set your own rules',retries:null,winMin:null,cont:false,icon:'?'}
 ];
 function gSched(){return SCHEDS.find(s=>s.id===S.schedId)||SCHEDS[1]}
@@ -390,11 +392,10 @@ async function runCampaign(){
   addLog('Campaign started - '+S.contacts.length+' contacts - KSH '+S.amount+' - '+gSched().name,'ok');
   const sc=gSched();let round=0;
   if(sc.mode==='blast'){
-    while(!stopF){
+    const maxRounds=sc.maxRounds||gRet();
+    while(!stopF && (!maxRounds || round<maxRounds)){
       const pending=S.contacts.filter(c=>c.status!=='paid');
       if(!pending.length){addLog('All contacts paid.','ok');break;}
-      const maxRounds=sc.maxRounds||gRet();
-      if(maxRounds&&round>=maxRounds){addLog('Max rounds reached.','err');break;}
       addLog('Blast round '+(round+1)+' - '+pending.length+' contacts','inf');
       const now=Date.now(),wMs=gWin()*60000;
       await Promise.all(pending.map(async entry=>{
@@ -424,7 +425,10 @@ async function runCampaign(){
       round++;
       save();
       if(stopF)break;
-      await sl((sc.intervalSec||60)*1000);
+      const waitSec=sc.intervalSec||60;
+      if(maxRounds && round>=maxRounds)break;
+      addLog('Next blast in '+waitSec+'s','inf');
+      await waitWithStop(waitSec);
     }
     const wasStopped=stopF;
     S.curId=null;S.running=false;save();
@@ -432,13 +436,13 @@ async function runCampaign(){
     S.tab=wasStopped?'run':'report';render();
     return;
   }
-  do{
-    if(round>0){
+  const maxRounds=sc.maxRounds || (sc.cont?null:1);
+  const waitSec=sc.intervalSec || (sc.cont?3600:0);
+  while(!stopF && (!maxRounds || round<maxRounds)){
+    if(round>0 && sc.resetEachRound){
       addLog('Cycle '+round+' - resetting failed contacts','inf');
       S.contacts=S.contacts.map(c=>c.status!=='paid'?{...c,status:'idle',retries:0,attempts:[],note:''}:c);
       save();render();await sl(800);
-      for(let i=0;i<3600;i++){if(stopF)break;await sl(1000)}
-      if(stopF)break;
     }
     const snap=[...S.contacts].filter(c=>c.status!=='paid');
     for(const entry of snap){
@@ -470,7 +474,10 @@ async function runCampaign(){
       S.stats.paid++;S.stats.ksh+=S.amount;updStats();save();await sendDelay();
     }
     round++;
-  }while(sc.cont&&!stopF);
+    if(stopF)break;
+    if(maxRounds && round>=maxRounds)break;
+    if(waitSec>0){addLog('Next cycle in '+waitSec+'s','inf');await waitWithStop(waitSec)}
+  }
   const wasStopped=stopF;
   S.curId=null;S.running=false;save();
   addLog(wasStopped?'Campaign stopped.':'Campaign complete.',wasStopped?'err':'ok');
@@ -916,6 +923,9 @@ initInstallPrompt();
 </script>
 </body>
 </html>
+
+
+
 
 
 
