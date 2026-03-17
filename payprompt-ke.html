@@ -1,0 +1,686 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>PayPrompt KE</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=DM+Sans:wght@400;500;600&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#f5f3ef;--s1:#ffffff;--s2:#f8f6f2;--s3:#eeecea;--s4:#e4e1db;
+  --b1:#dddad4;--b2:#c8c4bc;--b3:#aaa89f;
+  --green:#00a84f;--gd:#e6f7ee;--gt:#005c2a;--gm:#007a38;
+  --red:#d92b2b;--rd:#fde8e8;--rt:#8b0000;
+  --amber:#c47a00;--ad:#fff4d6;--at:#7a4a00;
+  --blue:#1a5ccc;--bd:#e8f0ff;--bt:#0d3480;
+  --black:#0f0f0f;
+  --text:#1a1a1a;--t2:#5a5a5a;--t3:#999;--t4:#ccc;
+  --mono:'JetBrains Mono',monospace;
+  --sans:'DM Sans',sans-serif;
+  --disp:'Syne',sans-serif;
+}
+html,body{height:100%;font-family:var(--sans);background:var(--bg);color:var(--text);font-size:14px}
+.app{display:flex;flex-direction:column;min-height:100vh}
+/* HEADER */
+.hdr{background:var(--black);color:#fff;padding:0 24px;display:flex;align-items:center;justify-content:space-between;gap:12px;height:58px;position:sticky;top:0;z-index:100;flex-wrap:wrap}
+.logo{font-family:var(--disp);font-size:18px;font-weight:800;color:var(--green);display:flex;align-items:center;gap:10px}
+.logo-mark{width:26px;height:26px;border-radius:50%;border:2.5px solid var(--green);display:flex;align-items:center;justify-content:center}
+.logo-inner{width:9px;height:9px;border-radius:50%;background:var(--green)}
+.hpills{display:flex;gap:7px;flex-wrap:wrap;align-items:center}
+.hpill{display:inline-flex;align-items:center;gap:5px;padding:5px 11px;border-radius:99px;font-size:11px;font-weight:600;font-family:var(--mono);border:1.5px solid}
+.hp-g{background:rgba(0,168,79,.15);border-color:#00a84f;color:#4fffaa}
+.hp-a{background:rgba(196,122,0,.15);border-color:#c47a00;color:#ffc96b}
+.hp-x{background:rgba(255,255,255,.08);border-color:rgba(255,255,255,.2);color:rgba(255,255,255,.6)}
+.ldot{width:7px;height:7px;border-radius:50%;background:currentColor;animation:blink 1.1s infinite}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.1}}
+/* NAV */
+.nav{background:var(--s1);border-bottom:2px solid var(--b1);display:flex;padding:0 20px;overflow-x:auto;gap:0;box-shadow:0 2px 8px rgba(0,0,0,.07)}
+.nav::-webkit-scrollbar{display:none}
+.ni{padding:14px 18px;font-size:13px;font-weight:600;color:var(--t2);cursor:pointer;border-bottom:3px solid transparent;margin-bottom:-2px;white-space:nowrap;transition:color .15s,border-color .15s;user-select:none}
+.ni:hover{color:var(--text)}
+.ni.on{color:var(--green);border-bottom-color:var(--green)}
+.ni-cnt{background:var(--s3);border-radius:4px;padding:1px 6px;font-size:10px;margin-left:4px;font-family:var(--mono);color:var(--t2)}
+.ni.on .ni-cnt{background:var(--gd);color:var(--gt)}
+/* MAIN */
+.main{flex:1;padding:22px 24px;display:flex;flex-direction:column;gap:14px;max-width:960px;width:100%;margin:0 auto}
+/* PANEL */
+.panel{background:var(--s1);border:1.5px solid var(--b1);border-radius:14px;padding:20px 22px;box-shadow:0 2px 8px rgba(0,0,0,.06)}
+.ptitle{font-family:var(--disp);font-size:10px;font-weight:800;color:var(--t3);text-transform:uppercase;letter-spacing:1.2px;margin-bottom:14px;display:flex;align-items:center;gap:8px}
+/* METRICS */
+.mets{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}
+.met{background:var(--s1);border:1.5px solid var(--b1);border-radius:10px;padding:16px 18px;box-shadow:0 2px 8px rgba(0,0,0,.06);position:relative;overflow:hidden}
+.met::after{content:'';position:absolute;bottom:0;left:0;right:0;height:3px}
+.met-val{font-family:var(--mono);font-size:22px;font-weight:700;line-height:1.1}
+.met-lbl{font-size:10px;color:var(--t2);margin-top:5px;font-weight:600;text-transform:uppercase;letter-spacing:.6px}
+.met-sub{font-size:11px;color:var(--t3);margin-top:3px;font-family:var(--mono)}
+/* INPUTS */
+input,select,textarea{font-family:var(--sans);background:var(--s2);border:1.5px solid var(--b1);border-radius:8px;padding:10px 14px;font-size:13px;color:var(--text);width:100%;outline:none;transition:border-color .15s,box-shadow .15s;-webkit-appearance:none;appearance:none}
+input:focus,select:focus,textarea:focus{border-color:var(--green);box-shadow:0 0 0 3px rgba(0,168,79,.1)}
+input::placeholder,textarea::placeholder{color:var(--t4)}
+select{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%23999' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 12px center;padding-right:34px;cursor:pointer}
+textarea{resize:vertical;min-height:90px;line-height:1.6}
+.lbl{font-size:11px;font-weight:700;color:var(--t2);text-transform:uppercase;letter-spacing:.5px;display:block;margin-bottom:6px}
+/* BUTTONS */
+.btn{font-family:var(--sans);border:1.5px solid var(--b2);border-radius:8px;padding:9px 16px;font-size:13px;font-weight:600;cursor:pointer;display:inline-flex;align-items:center;gap:7px;white-space:nowrap;transition:all .15s;background:var(--s1);color:var(--text);line-height:1}
+.btn:hover:not([disabled]){background:var(--s2);border-color:var(--b3)}
+.btn:active:not([disabled]){transform:scale(.98)}
+.btn[disabled]{opacity:.4;cursor:not-allowed}
+.btn-green{background:var(--green);color:#fff;border-color:var(--gm);font-weight:700}
+.btn-green:hover:not([disabled]){background:#009944;border-color:#007a38}
+.btn-red{background:var(--rd);color:var(--rt);border-color:#e09090}
+.btn-ghost{background:transparent;border-color:var(--b1);color:var(--t2)}
+.btn-ghost:hover:not([disabled]){background:var(--s2);color:var(--text)}
+.btn-danger{background:#fff0f0;color:#8b1c1c;border-color:#e09090}
+.btn-danger:hover:not([disabled]){background:#fde0e0}
+.btn-sm{padding:6px 12px;font-size:12px}
+.btn-lg{padding:12px 22px;font-size:14px}
+.btn-full{width:100%;justify-content:center}
+.btn-icon{width:30px;height:30px;padding:0;justify-content:center;border-radius:6px;font-size:16px;line-height:1}
+/* CONTACT ROWS */
+.clist{display:flex;flex-direction:column;gap:4px;max-height:460px;overflow-y:auto;padding-right:4px}
+.clist::-webkit-scrollbar{width:4px}.clist::-webkit-scrollbar-thumb{background:var(--b1);border-radius:99px}
+.crow{display:flex;align-items:center;gap:10px;padding:10px 14px;background:var(--s1);border:1.5px solid var(--b1);border-radius:8px;transition:border-color .15s,background .15s}
+.crow.st-paid{background:var(--gd);border-color:#a8dfc0}
+.crow.st-failed{background:var(--rd);border-color:#f0b0b0}
+.crow.st-active{background:var(--ad);border-color:#e8c060}
+.cdot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+.di{background:var(--b2)}.da{background:var(--amber);animation:blink .7s infinite}.dp{background:var(--green)}.df{background:var(--red)}
+.cnum{font-family:var(--mono);font-size:13px;font-weight:600;flex:1;min-width:0;color:var(--text)}
+.cname{font-size:12px;color:var(--t2);max-width:90px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+/* BADGES */
+.badge{font-size:10px;font-weight:700;padding:3px 9px;border-radius:5px;font-family:var(--mono);text-transform:uppercase;letter-spacing:.3px;white-space:nowrap;border:1.5px solid}
+.bg{background:var(--gd);color:var(--gt);border-color:#90d4aa}
+.br{background:var(--rd);color:var(--rt);border-color:#f0a0a0}
+.ba{background:var(--ad);color:var(--at);border-color:#f0c860}
+.bb{background:var(--bd);color:var(--bt);border-color:#90b8f0}
+.bx{background:var(--s3);color:var(--t2);border-color:var(--b2)}
+/* AMOUNT PILLS */
+.apills{display:flex;gap:7px;flex-wrap:wrap;margin-top:8px}
+.apill{padding:7px 14px;border:1.5px solid var(--b2);border-radius:99px;font-size:12px;font-weight:600;font-family:var(--mono);cursor:pointer;background:var(--s1);color:var(--t2);transition:all .15s;user-select:none}
+.apill:hover{border-color:var(--green);color:var(--green)}
+.apill.on{background:var(--gd);border-color:var(--green);color:var(--gt)}
+/* SCHEDULE */
+.sgrid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.sc{background:var(--s2);border:1.5px solid var(--b1);border-radius:10px;padding:14px 16px;cursor:pointer;transition:all .15s;user-select:none}
+.sc:hover{border-color:var(--b3);background:var(--s3)}
+.sc.on{background:var(--gd);border-color:var(--green)}
+.sc-icon{font-family:var(--mono);font-size:18px;font-weight:800;color:var(--t3);margin-bottom:7px}
+.sc.on .sc-icon{color:var(--green)}
+.sc-name{font-weight:700;font-size:13px;margin-bottom:2px;color:var(--text)}
+.sc-desc{font-size:11px;color:var(--t2)}
+/* PROGRESS */
+.prog{background:var(--s3);border-radius:99px;height:6px;overflow:hidden;border:1px solid var(--b1)}
+.prog-fill{height:100%;background:var(--green);transition:width .5s;border-radius:99px}
+/* LOG */
+.logbox{background:#0b0b0b;border:1.5px solid var(--b1);border-radius:8px;padding:12px 14px;font-family:var(--mono);font-size:11px;max-height:160px;overflow-y:auto;line-height:1.9;color:#888}
+.logbox::-webkit-scrollbar{width:3px}.logbox::-webkit-scrollbar-thumb{background:#333;border-radius:99px}
+.lok{color:#4fffaa}.lerr{color:#ff7b74}.linf{color:#ffc96b}.ldim{color:#444}
+/* TOGGLE */
+.tog{position:relative;width:44px;height:24px;flex-shrink:0}
+.tog input{opacity:0;width:0;height:0;position:absolute}
+.tog-sl{position:absolute;cursor:pointer;inset:0;background:var(--s3);border-radius:99px;border:1.5px solid var(--b2);transition:.2s}
+.tog-sl::before{content:'';position:absolute;width:17px;height:17px;left:2px;top:2px;background:var(--b3);border-radius:50%;transition:.2s}
+.tog input:checked+.tog-sl{background:var(--gd);border-color:var(--green)}
+.tog input:checked+.tog-sl::before{transform:translateX(20px);background:var(--green)}
+.tog-row{display:flex;align-items:center;justify-content:space-between;padding:13px 0;border-bottom:1px solid var(--b1)}
+.tog-lbl{font-weight:600;font-size:14px}
+.tog-sub{font-size:12px;color:var(--t2);margin-top:2px}
+/* FEED */
+.sfeed{display:flex;flex-direction:column;gap:4px;max-height:300px;overflow-y:auto}
+.sfeed::-webkit-scrollbar{width:3px}.sfeed::-webkit-scrollbar-thumb{background:var(--b1);border-radius:99px}
+.sfrow{display:flex;align-items:center;gap:10px;padding:9px 12px;background:var(--gd);border:1.5px solid #a8dfc0;border-radius:8px}
+.sftime{font-family:var(--mono);font-size:10px;color:var(--t3);min-width:55px}
+/* SEARCH */
+.sw{position:relative}
+.si{position:absolute;left:12px;top:50%;transform:translateY(-50%);color:var(--t3);font-size:14px;pointer-events:none}
+.sw input{padding-left:34px}
+/* COUNTDOWN OVERLAY */
+.cdov{position:fixed;inset:0;background:rgba(0,0,0,.75);display:flex;align-items:center;justify-content:center;z-index:1000}
+.cdcard{background:#fff;border:2px solid var(--b1);border-radius:20px;padding:40px 52px;text-align:center;min-width:300px;box-shadow:0 20px 60px rgba(0,0,0,.3)}
+.cd-phone{font-family:var(--mono);font-size:17px;font-weight:700;color:var(--amber);margin-bottom:4px}
+.cd-lbl{font-size:12px;color:var(--t2);margin-bottom:24px}
+.cd-ring{position:relative;width:110px;height:110px;margin:0 auto 22px}
+.cd-ring svg{transform:rotate(-90deg)}
+.cd-num{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-family:var(--disp);font-size:42px;font-weight:800;color:var(--green)}
+.cd-amt{font-family:var(--mono);font-size:20px;font-weight:700;color:var(--text);margin-bottom:6px}
+.cd-st{font-size:12px;color:var(--t2)}
+/* CURR BANNER */
+.curr-ban{background:var(--ad);border:1.5px solid #e0c060;border-radius:10px;padding:14px 18px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px}
+/* EMPTY */
+.empty{text-align:center;padding:36px 20px;color:var(--t3)}
+.empty-i{font-size:28px;margin-bottom:8px}
+.empty-t{font-size:13px;font-weight:600;color:var(--t2);margin-bottom:4px}
+/* DANGER */
+.dz{background:#fff5f5;border:1.5px solid #fca5a5;border-radius:14px;padding:20px 22px;margin-top:40px}
+.dz-t{font-family:var(--disp);font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:1px;color:var(--rt);margin-bottom:4px}
+.dz-s{font-size:12px;color:#c05050;margin-bottom:16px}
+/* REPORT */
+.rep-row{display:flex;align-items:center;gap:10px;padding:10px 14px;border-radius:8px;margin-bottom:4px}
+.rp-ok{background:var(--gd);border:1.5px solid #a8dfc0}
+.rp-fail{background:var(--rd);border:1.5px solid #f0a0a0}
+.rp-ref{font-family:var(--mono);font-size:10px;color:var(--t3)}
+/* UTILS */
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.row{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.col{display:flex;flex-direction:column;gap:8px}
+.div{border:none;border-top:1px solid var(--b1);margin:16px 0}
+.mt8{margin-top:8px}.mt12{margin-top:12px}.mt16{margin-top:16px}
+.spin{animation:spin 1s linear infinite;display:inline-block}
+@keyframes spin{from{transform:rotate(0)}to{transform:rotate(360deg)}}
+@media(max-width:640px){.mets{grid-template-columns:1fr 1fr}.g2{grid-template-columns:1fr}.sgrid{grid-template-columns:1fr 1fr}.main{padding:14px}.hdr{padding:0 14px;height:auto;padding-top:10px;padding-bottom:10px}}
+</style>
+</head>
+<body>
+<div class="app">
+  <div class="hdr">
+    <div class="logo">
+      <div class="logo-mark"><div class="logo-inner"></div></div>
+      PayPrompt KE
+    </div>
+    <div class="hpills">
+      <span class="hpill hp-g" id="hdr-ksh"><span class="ldot"></span><span id="hksh">KSH 0</span></span>
+      <span class="hpill hp-x" id="hdr-cts">0 contacts</span>
+      <span class="hpill hp-a" id="hdr-live" style="display:none"><span class="ldot"></span>LIVE</span>
+      <span class="hpill hp-a" id="hdr-demo">DEMO</span>
+    </div>
+  </div>
+  <div class="nav" id="nav"></div>
+  <div id="page"></div>
+</div>
+<!-- COUNTDOWN -->
+<div class="cdov" id="cdov" style="display:none">
+  <div class="cdcard">
+    <div class="cd-phone" id="cd-ph">0712 345 678</div>
+    <div class="cd-lbl">Initiating M-Pesa STK Push</div>
+    <div class="cd-ring">
+      <svg width="110" height="110" viewBox="0 0 110 110">
+        <circle cx="55" cy="55" r="46" fill="none" stroke="#e4e1db" stroke-width="5"/>
+        <circle id="cd-arc" cx="55" cy="55" r="46" fill="none" stroke="#00a84f" stroke-width="5"
+          stroke-linecap="round" stroke-dasharray="289" stroke-dashoffset="289" style="transition:stroke-dashoffset .08s"/>
+      </svg>
+      <div class="cd-num" id="cd-n">3</div>
+    </div>
+    <div class="cd-amt" id="cd-am">KSH 50</div>
+    <div class="cd-st">Sending prompt to phone…</div>
+  </div>
+</div>
+<script>
+// ────────────────────────────────────────────
+//  STORAGE
+// ────────────────────────────────────────────
+const SK={c:'kp4_c',r:'kp4_r',k:'kp4_k',a:'kp4_a',s:'kp4_s',cr:'kp4_cr',cw:'kp4_cw',dm:'kp4_dm'};
+const ls={
+  g(k,fb){try{const v=localStorage.getItem(k);return v!==null?JSON.parse(v):fb}catch{return fb}},
+  s(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch{}}
+};
+
+// ────────────────────────────────────────────
+//  STATE
+// ────────────────────────────────────────────
+const S={
+  contacts:ls.g(SK.c,demo()),
+  records: ls.g(SK.r,[]),
+  apiKey:  ls.g(SK.k,''),
+  amount:  ls.g(SK.a,50),
+  schedId: ls.g(SK.s,'3x1h'),
+  custRet: ls.g(SK.cr,3),
+  custWin: ls.g(SK.cw,60),
+  demoMode:ls.g(SK.dm,true),
+  tab:'dashboard',
+  running:false, curId:null,
+  logs:[], stats:{prompted:0,paid:0,failed:0,ksh:0},
+  search:'', filter:'all',
+  showKey:false, clearConfirm:false,
+};
+function save(){ls.s(SK.c,S.contacts);ls.s(SK.r,S.records);ls.s(SK.k,S.apiKey);ls.s(SK.a,S.amount);ls.s(SK.s,S.schedId);ls.s(SK.cr,S.custRet);ls.s(SK.cw,S.custWin);ls.s(SK.dm,S.demoMode)}
+
+// ────────────────────────────────────────────
+//  HELPERS
+// ────────────────────────────────────────────
+function fmtP(p){p=String(p).replace(/\D/g,'');if(p.startsWith('254'))p='0'+p.slice(3);if(!p.startsWith('0'))p='0'+p;return p.slice(0,12)}
+function validP(p){return /^07\d{8}$/.test(fmtP(p))}
+function uid(){return Date.now().toString(36)+Math.random().toString(36).slice(2,7)}
+function ts(){return new Date().toLocaleTimeString('en-KE',{hour12:false})}
+function ds(){return new Date().toLocaleDateString('en-KE',{day:'2-digit',month:'short',year:'numeric'})}
+function sl(ms){return new Promise(r=>setTimeout(r,ms))}
+function e(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;')}
+function mkC(ph,nm=''){return{id:uid(),phone:fmtP(ph),name:nm.trim(),status:'idle',retries:0,attempts:[],paidAt:null,ref:null,note:'',totalPaid:0}}
+function demo(){return['0712345678','0723456789','0700111222'].map(p=>mkC(p))}
+
+const SCHEDS=[
+  {id:'once',name:'One time',    desc:'Single prompt only',retries:1,winMin:60,cont:false,icon:'1×'},
+  {id:'3x1h',name:'3× per hour',desc:'3 prompts / 60 min',retries:3,winMin:60,cont:false,icon:'3×'},
+  {id:'3x24',name:'3× / hr 24/7',desc:'Runs every hour all day',retries:3,winMin:60,cont:true,icon:'∞'},
+  {id:'cust',name:'Custom',      desc:'Set your own rules',retries:null,winMin:null,cont:false,icon:'⚙'},
+];
+function gSched(){return SCHEDS.find(s=>s.id===S.schedId)||SCHEDS[1]}
+function gRet(){return S.schedId==='cust'?S.custRet:gSched().retries}
+function gWin(){return S.schedId==='cust'?S.custWin:gSched().winMin}
+function paid(){return S.contacts.filter(c=>c.status==='paid')}
+function failed(){return S.contacts.filter(c=>c.status==='failed')}
+function idleC(){return S.contacts.filter(c=>c.status==='idle')}
+function totalKsh(){return S.records.reduce((a,r)=>a+r.amount,0)}
+function todayR(){const d=ds();return S.records.filter(r=>r.date===d)}
+function pct(){return S.contacts.length?Math.round(paid().length/S.contacts.length*100):0}
+function filteredC(){
+  let l=S.contacts;
+  if(S.filter!=='all')l=l.filter(c=>c.status===S.filter);
+  if(S.search.trim())l=l.filter(c=>c.phone.includes(S.search)||c.name.toLowerCase().includes(S.search.toLowerCase()));
+  return l;
+}
+
+// ────────────────────────────────────────────
+//  RENDER
+// ────────────────────────────────────────────
+let rp=false;
+function render(){if(rp)return;rp=true;requestAnimationFrame(()=>{rp=false;_render()})}
+function _render(){
+  // header
+  document.getElementById('hksh').textContent='KSH '+totalKsh().toLocaleString();
+  document.getElementById('hdr-cts').textContent=S.contacts.length+' contacts';
+  document.getElementById('hdr-live').style.display=S.running?'inline-flex':'none';
+  document.getElementById('hdr-demo').style.display=S.demoMode?'inline-flex':'none';
+  // nav
+  const TABS=[{id:'dashboard',l:'Dashboard'},{id:'contacts',l:'Contacts',cnt:S.contacts.length},{id:'run',l:'Run',live:S.running},{id:'report',l:'Report'},{id:'settings',l:'Settings'}];
+  document.getElementById('nav').innerHTML=TABS.map(t=>`<div class="ni ${S.tab===t.id?'on':''}" data-tab="${t.id}">${t.l}${t.cnt!=null?`<span class="ni-cnt">${t.cnt}</span>`:''}${t.live?`<span class="ni-cnt" style="background:var(--gd);color:var(--gt)">●</span>`:''}</div>`).join('');
+  // page
+  const pg=document.getElementById('page');
+  if(S.tab==='dashboard')pg.innerHTML=dashH();
+  else if(S.tab==='contacts')pg.innerHTML=ctsH();
+  else if(S.tab==='run')pg.innerHTML=runH();
+  else if(S.tab==='report')pg.innerHTML=repH();
+  else pg.innerHTML=setH();
+  bind();
+  if(S.tab==='run'||S.tab==='dashboard'){const lb=document.getElementById('logbox');if(lb){lb.innerHTML=S.logs.slice(-30).map(l=>`<div class="l${l.t}">[${l.ts}] ${e(l.m)}</div>`).join('');lb.scrollTop=lb.scrollHeight}}
+}
+
+// ── LOG ──
+function addLog(m,t='inf'){
+  S.logs=[...S.logs.slice(-100),{ts:ts(),m,t}];
+  const lb=document.getElementById('logbox');
+  if(lb){const d=document.createElement('div');d.className='l'+t;d.textContent='['+S.logs[S.logs.length-1].ts+'] '+m;lb.appendChild(d);lb.scrollTop=lb.scrollHeight}
+}
+
+// ── COUNTDOWN ──
+let cdTmr=null;
+function showCD(phone,amt){
+  return new Promise(res=>{
+    document.getElementById('cd-ph').textContent=phone;
+    document.getElementById('cd-am').textContent='KSH '+amt;
+    document.getElementById('cdov').style.display='flex';
+    let sec=3;
+    function tick(){
+      document.getElementById('cd-n').textContent=sec;
+      document.getElementById('cd-arc').style.strokeDashoffset=Math.round(289-289*((3-sec)/3));
+      if(sec<=0){clearInterval(cdTmr);document.getElementById('cdov').style.display='none';res()}
+      sec--;
+    }
+    tick();cdTmr=setInterval(tick,1000);
+  });
+}
+
+// ────────────────────────────────────────────
+//  CAMPAIGN
+// ────────────────────────────────────────────
+let stopF=false;
+async function runCampaign(){
+  if(!S.demoMode&&!S.apiKey){alert('Add your Paystack key in Settings first.');S.tab='settings';render();return}
+  if(!S.contacts.length){alert('Add contacts first.');S.tab='contacts';render();return}
+  stopF=false;S.running=true;S.stats={prompted:0,paid:0,failed:0,ksh:0};
+  S.tab='run';render();
+  addLog('Campaign started · '+S.contacts.length+' contacts · KSH '+S.amount+' · '+gSched().name+(S.demoMode?' [DEMO]':''),'ok');
+  const sc=gSched();let round=0;
+  do{
+    if(round>0){
+      addLog('Cycle '+round+' — resetting failed contacts','inf');
+      S.contacts=S.contacts.map(c=>c.status!=='paid'?{...c,status:'idle',retries:0,attempts:[],note:''}:c);
+      save();render();await sl(800);
+      for(let i=0;i<3600;i++){if(stopF)break;await sl(1000)}
+      if(stopF)break;
+    }
+    const snap=[...S.contacts].filter(c=>c.status!=='paid');
+    for(const entry of snap){
+      if(stopF)break;
+      const fc=S.contacts.find(c=>c.id===entry.id)||entry;
+      if(fc.status==='paid'){addLog(fc.phone+' already paid — skip','ldim');continue}
+      const now=Date.now(),wMs=gWin()*60000;
+      const rec=(fc.attempts||[]).filter(t=>t>now-wMs).length;
+      if(rec>=gRet()){
+        addLog(fc.phone+' — max '+gRet()+'× reached','err');
+        updC(entry.id,{status:'failed',note:'Max retries'});S.stats.failed++;updStats();continue;
+      }
+      S.curId=entry.id;updC(entry.id,{status:'active'});S.stats.prompted++;updStats();
+      addLog('→ '+fc.phone+(fc.name?' ('+fc.name+')':'')+' · KSH '+S.amount+' · attempt '+(rec+1)+'/'+gRet(),'inf');
+      await showCD(fc.phone+(fc.name?' · '+fc.name:''),S.amount);
+      const result=await doCharge(fc);
+      const t2=Date.now();
+      if(!result.ok){
+        addLog('✗ '+fc.phone+' — '+result.err,'err');
+        updC(entry.id,{status:'failed',retries:(fc.retries||0)+1,attempts:[...(fc.attempts||[]),t2],note:result.err});
+        S.stats.failed++;updStats();await sl(400);continue;
+      }
+      addLog('✓ '+fc.phone+' — PAID KSH '+S.amount,'ok');
+      const rec2={id:uid(),phone:fc.phone,name:fc.name,amount:S.amount,ref:result.ref,time:ts(),date:ds()};
+      S.records=[rec2,...S.records.slice(0,999)];
+      updC(entry.id,{status:'paid',paidAt:ts(),ref:result.ref,attempts:[...(fc.attempts||[]),t2],totalPaid:(fc.totalPaid||0)+S.amount});
+      S.stats.paid++;S.stats.ksh+=S.amount;updStats();save();await sl(300);
+    }
+    round++;
+  }while(sc.cont&&!stopF);
+  S.curId=null;S.running=false;save();
+  addLog('Campaign complete.','ok');S.tab='report';render();
+}
+function updC(id,patch){S.contacts=S.contacts.map(c=>c.id===id?{...c,...patch}:c);save();_updRow(id)}
+function _updRow(id){
+  const c=S.contacts.find(x=>x.id===id);const row=document.querySelector(`.crow[data-id="${id}"]`);
+  if(!row||!c)return;
+  const isCur=S.curId===c.id;
+  row.className='crow st-'+(isCur?'active':c.status);
+  const dot=row.querySelector('.cdot');if(dot)dot.className='cdot '+(isCur?'da':c.status==='paid'?'dp':c.status==='failed'?'df':'di');
+  const bd=row.querySelector('.crow-badge');
+  if(bd){bd.innerHTML=c.status==='paid'?`<span class="badge bg">✓ KSH ${c.totalPaid||0}</span>`:c.status==='failed'?`<span class="badge br">✗ ${c.retries}×</span>`:isCur?`<span class="badge ba"><span class="spin">◌</span> sending</span>`:`<span class="badge bx">queue</span>`}
+}
+function updStats(){
+  const s=S.stats;
+  ['prompted','paid','failed'].forEach(k=>{const el=document.getElementById('st-'+k);if(el)el.textContent=s[k]});
+  const ke=document.getElementById('st-ksh');if(ke)ke.textContent='KSH '+s.ksh.toLocaleString();
+  const pf=document.getElementById('prog-fill');if(pf)pf.style.width=pct()+'%';
+  const pp=document.getElementById('prog-pct');if(pp)pp.textContent=pct()+'% · '+paid().length+'/'+S.contacts.length;
+}
+async function doCharge(c){
+  if(S.demoMode){
+    await sl(900+Math.random()*1200);
+    const r=Math.random();
+    if(r<0.6)return{ok:true,ref:'KE'+Date.now().toString(36).toUpperCase().slice(-8)};
+    if(r<0.82)return{ok:false,err:'User cancelled STK'};
+    return{ok:false,err:'Insufficient M-Pesa balance'};
+  }
+  const mob=c.phone.replace(/^0/,'254');
+  try{
+    const res=await fetch('https://api.paystack.co/charge',{method:'POST',
+      headers:{'Authorization':'Bearer '+S.apiKey,'Content-Type':'application/json'},
+      body:JSON.stringify({email:mob+'@mpesa.ke',amount:S.amount*100,currency:'KES',mobile_money:{phone:mob,provider:'mpesa'}})});
+    const d=await res.json();
+    if(d.status&&d.data)return{ok:true,ref:d.data.reference};
+    return{ok:false,err:d.message||'Paystack error'};
+  }catch(ex){return{ok:false,err:ex.message}}
+}
+function stopCampaign(){stopF=true;S.running=false;S.curId=null;clearInterval(cdTmr);document.getElementById('cdov').style.display='none';addLog('Stopped by user.','err');render()}
+function skipCurrent(){if(!S.curId)return;const c=S.contacts.find(x=>x.id===S.curId);if(c)addLog('Skipped '+c.phone,'inf');updC(S.curId,{status:'failed',note:'Skipped'});stopF=true;setTimeout(()=>{if(S.running)stopF=false},300)}
+
+// ────────────────────────────────────────────
+//  HTML BUILDERS
+// ────────────────────────────────────────────
+function metH(val,lbl,sub,color){return`<div class="met" style="--acc:${color}"><div class="met-val" style="color:${color}">${e(val)}</div><div class="met-lbl">${e(lbl)}</div><div class="met-sub">${e(sub)}</div><div style="position:absolute;bottom:0;left:0;right:0;height:3px;background:${color}"></div></div>`}
+function rowH(c,i){
+  const isCur=S.curId===c.id;
+  const dc=isCur?'da':c.status==='paid'?'dp':c.status==='failed'?'df':'di';
+  const rc=isCur?'active':c.status;
+  const bdg=c.status==='paid'?`<span class="badge bg">✓ KSH ${c.totalPaid||0}</span>`:c.status==='failed'?`<span class="badge br">✗ ${c.retries}×</span>`:isCur?`<span class="badge ba"><span class="spin">◌</span> sending</span>`:`<span class="badge bx">idle</span>`;
+  return`<div class="crow st-${rc}" data-id="${c.id}">
+    <span style="font-size:11px;color:var(--t3);font-family:var(--mono);min-width:26px">${(i+1).toString().padStart(2,'0')}</span>
+    <div class="cdot ${dc}"></div><span class="cnum">${e(c.phone)}</span>
+    ${c.name?`<span class="cname">${e(c.name)}</span>`:''}
+    <span class="crow-badge">${bdg}</span>
+    ${c.note&&c.status!=='paid'?`<span style="font-size:10px;color:var(--t3);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:90px;flex-shrink:0">${e(c.note)}</span>`:''}
+    <button class="btn btn-icon btn-ghost del-btn" data-id="${c.id}" ${S.running?'disabled':''} style="margin-left:auto;flex-shrink:0">×</button>
+  </div>`;
+}
+
+function dashH(){
+  const tr=todayR();const tk=tr.reduce((a,r)=>a+r.amount,0);
+  return`<div class="main">
+  <div class="mets">
+    ${metH('KSH '+totalKsh().toLocaleString(),'All-time collected',S.records.length+' payments','var(--green)')}
+    ${metH('KSH '+tk.toLocaleString(),"Today's collected",tr.length+' payments today','var(--amber)')}
+    ${metH(paid().length,'Paid this run',pct()+'% success rate','var(--green)')}
+    ${metH(S.contacts.length,'Total contacts',idleC().length+' pending','var(--blue)')}
+  </div>
+  <div class="g2">
+    <div class="panel">
+      <div class="ptitle">Quick start</div>
+      <label class="lbl">Amount (KSH)</label>
+      <div class="apills">${[50,100,200,500,1000].map(a=>`<div class="apill ${S.amount===a?'on':''}" data-amt="${a}">KSH ${a}</div>`).join('')}</div>
+      <div class="row mt8">
+        <input type="number" id="camt" placeholder="Custom…" style="flex:1">
+        <button class="btn btn-ghost btn-sm" id="set-amt">Set</button>
+      </div>
+      <hr class="div">
+      <label class="lbl">Schedule</label>
+      <select id="sched-sel">${SCHEDS.map(s=>`<option value="${s.id}" ${S.schedId===s.id?'selected':''}>${e(s.name)} — ${e(s.desc)}</option>`).join('')}</select>
+      <button class="btn btn-green btn-full btn-lg mt12" id="run-btn" ${S.running||!S.contacts.length?'disabled':''}>
+        ${S.running?'<span class="spin">◌</span>  Campaign running…':'▶  Start campaign — '+S.contacts.length+' contacts'}
+      </button>
+    </div>
+    <div class="panel">
+      <div class="ptitle">Recent payments <span style="margin-left:auto;font-family:var(--sans);font-size:12px;text-transform:none;letter-spacing:0;font-weight:500;color:var(--t2)">${tr.length} today</span></div>
+      ${!S.records.length?`<div class="empty"><div class="empty-i">◎</div><div class="empty-t">No payments yet</div><div>Start a campaign to see records</div></div>`:
+        `<div class="sfeed">${S.records.slice(0,20).map(r=>`<div class="sfrow"><span class="sftime">${r.time}</span><div class="cdot dp"></div><span style="font-family:var(--mono);font-size:13px;font-weight:600;flex:1">${e(r.phone)}</span>${r.name?`<span style="font-size:11px;color:var(--t2);max-width:80px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${e(r.name)}</span>`:''}<span class="badge bg">KSH ${r.amount}</span></div>`).join('')}</div>`}
+    </div>
+  </div>
+  <div class="panel">
+    <div class="ptitle">Activity log</div>
+    <div class="logbox" id="logbox">${S.logs.length?S.logs.slice(-30).map(l=>`<div class="l${l.t}">[${l.ts}] ${e(l.m)}</div>`).join(''):'<span class="ldim">No activity yet — start a campaign above</span>'}</div>
+  </div></div>`;
+}
+
+function ctsH(){
+  const fc=filteredC();
+  return`<div class="main">
+  <div class="panel">
+    <div class="ptitle">Add contact</div>
+    <div class="g2">
+      <input id="np" placeholder="07XX XXX XXX">
+      <input id="nn" placeholder="Name (optional)">
+    </div>
+    <button class="btn btn-green mt8" id="add-one">+ Add contact</button>
+    <hr class="div">
+    <div class="ptitle">Bulk add</div>
+    <textarea id="bulk" placeholder="0712345678 John&#10;0723456789 Jane&#10;0700111222&#10;One per line, comma separated. Name is optional."></textarea>
+    <div class="row mt8">
+      <button class="btn btn-green" id="add-bulk">+ Add all</button>
+      <button class="btn btn-ghost" id="clr-bulk">Clear</button>
+    </div>
+  </div>
+  <div class="panel">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;flex-wrap:wrap;gap:8px">
+      <div style="display:flex;gap:5px;flex-wrap:wrap">
+        ${['all','idle','paid','failed'].map(f=>{const cnt=f==='all'?S.contacts.length:f==='idle'?idleC().length:f==='paid'?paid().length:failed().length;return`<button class="btn btn-sm ${S.filter===f?'btn-green':'btn-ghost'}" data-flt="${f}">${f.charAt(0).toUpperCase()+f.slice(1)} (${cnt})</button>`}).join('')}
+      </div>
+      <div class="sw" style="flex:0 0 180px">
+        <span class="si">⌕</span>
+        <input id="srch" placeholder="Search…" value="${e(S.search)}">
+      </div>
+    </div>
+    ${!fc.length?`<div class="empty"><div class="empty-i">📭</div><div class="empty-t">No contacts</div></div>`:
+      `<div class="clist">${fc.map((c,i)=>rowH(c,i)).join('')}</div>`}
+  </div></div>`;
+}
+
+function runH(){
+  const curC=S.curId?S.contacts.find(c=>c.id===S.curId):null;
+  const s=S.stats;
+  return`<div class="main">
+  <div class="mets">
+    ${metH(s.prompted,'Prompted','','var(--blue)')}
+    <div class="met" style="--acc:var(--green)"><div class="met-val" id="st-paid" style="color:var(--green)">${s.paid}</div><div class="met-lbl">Paid</div></div>
+    <div class="met" style="--acc:var(--red)"><div class="met-val" id="st-failed" style="color:var(--red)">${s.failed}</div><div class="met-lbl">Failed</div></div>
+    <div class="met" style="--acc:var(--green)"><div class="met-val" id="st-ksh" style="color:var(--green)">KSH ${s.ksh.toLocaleString()}</div><div class="met-lbl">Collected</div></div>
+  </div>
+  ${curC?`<div class="curr-ban">
+    <div><div style="font-size:11px;color:var(--at);font-family:var(--mono);margin-bottom:3px">Currently prompting</div>
+    <div style="font-family:var(--mono);font-size:17px;font-weight:700;color:var(--amber)">${e(curC.phone)}${curC.name?' · '+e(curC.name):''}</div></div>
+    <div class="row"><button class="btn btn-ghost btn-sm" id="skip-btn">⏭ Skip</button><button class="btn btn-red btn-sm" id="stop-btn">⏹ Stop all</button></div>
+  </div>`:''}
+  ${!S.running&&!S.curId?`<div style="background:var(--s2);border:1.5px solid var(--b1);border-radius:10px;padding:14px 18px">
+    <div style="font-weight:600;font-size:14px">${S.logs.length?'Campaign finished':'No campaign running'}</div>
+    <div style="font-size:12px;color:var(--t2);margin-top:3px">${S.logs.length?'Last run: '+s.paid+' paid · KSH '+s.ksh:'Go to Dashboard to start a campaign'}</div>
+  </div>`:''}
+  <div class="panel">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+      <div class="ptitle" style="margin:0">Live progress</div>
+      <span id="prog-pct" style="font-size:11px;font-family:var(--mono);color:var(--t2)">${pct()}% · ${paid().length}/${S.contacts.length}</span>
+    </div>
+    <div class="prog"><div class="prog-fill" id="prog-fill" style="width:${pct()}%"></div></div>
+    <div class="clist" style="margin-top:14px">${S.contacts.map((c,i)=>rowH(c,i)).join('')}</div>
+  </div>
+  <div class="panel">
+    <div class="ptitle">Activity log</div>
+    <div class="logbox" id="logbox">${S.logs.slice(-30).map(l=>`<div class="l${l.t}">[${l.ts}] ${e(l.m)}</div>`).join('')||'<span class="ldim">Waiting…</span>'}</div>
+  </div></div>`;
+}
+
+function repH(){
+  const p=paid(),f=failed(),s=S.stats;
+  return`<div class="main">
+  <div class="mets">
+    ${metH(p.length,'Successful','','var(--green)')}
+    ${metH(f.length,'Failed','','var(--red)')}
+    ${metH(pct()+'%','Success rate','','var(--green)')}
+    ${metH('KSH '+s.ksh.toLocaleString(),'This run','','var(--amber)')}
+  </div>
+  <div class="panel">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">
+      <div class="ptitle" style="margin:0">Successful payments (${p.length})</div>
+      <button class="btn btn-ghost btn-sm" id="exp-btn">Export report</button>
+    </div>
+    ${!p.length?`<div class="empty"><div class="empty-i">◎</div><div class="empty-t">No successful payments yet</div></div>`:''}
+    ${p.map((c,i)=>`<div class="rep-row rp-ok">
+      <span style="font-size:11px;color:var(--t3);min-width:26px;font-family:var(--mono)">${(i+1).toString().padStart(2,'0')}</span>
+      <div class="cdot dp"></div><span class="cnum" style="font-size:13px">${e(c.phone)}</span>
+      ${c.name?`<span class="cname">${e(c.name)}</span>`:''}
+      <span class="badge bg">KSH ${c.totalPaid||0}</span>
+      ${c.paidAt?`<span style="font-size:11px;color:var(--t2);font-family:var(--mono)">${c.paidAt}</span>`:''}
+      ${c.ref?`<span class="rp-ref">${c.ref.slice(-10)}</span>`:''}
+    </div>`).join('')}
+  </div>
+  ${f.length?`<div class="panel">
+    <div class="ptitle">Failed (${f.length})</div>
+    ${f.map((c,i)=>`<div class="rep-row rp-fail">
+      <span style="font-size:11px;color:var(--t3);min-width:26px;font-family:var(--mono)">${(i+1).toString().padStart(2,'0')}</span>
+      <div class="cdot df"></div><span class="cnum" style="font-size:13px">${e(c.phone)}</span>
+      ${c.name?`<span class="cname">${e(c.name)}</span>`:''}
+      <span class="badge br">${c.retries}× tried</span>
+      ${c.note?`<span style="font-size:11px;color:var(--t3)">${e(c.note)}</span>`:''}
+      <button class="btn btn-ghost btn-sm retry-btn" data-id="${c.id}" style="margin-left:auto">↺ Retry</button>
+    </div>`).join('')}
+  </div>`:''}
+  <div class="row mt8">
+    <button class="btn btn-green" id="run-again" ${S.running?'disabled':''}>▶ Run again</button>
+    <button class="btn btn-ghost" id="reset-all">↺ Reset statuses</button>
+  </div></div>`;
+}
+
+function setH(){
+  return`<div class="main">
+  <div class="panel">
+    <div class="ptitle">Paystack API key</div>
+    <p style="font-size:13px;color:var(--t2);line-height:1.7;margin-bottom:12px">Enter your secret key (sk_live_… for production, sk_test_… for testing). Stored in your browser only — never sent anywhere else.</p>
+    <div style="position:relative">
+      <input type="${S.showKey?'text':'password'}" id="key-inp" placeholder="sk_live_xxxxxxxxxxxxxxxxxxxx" value="${e(S.apiKey)}" style="font-family:var(--mono);font-size:13px;padding-right:56px">
+      <button id="key-tog" style="position:absolute;right:12px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;color:var(--t2);font-size:12px;font-weight:700">${S.showKey?'Hide':'Show'}</button>
+    </div>
+    ${S.apiKey?`<div style="font-size:12px;color:var(--green);margin-top:8px;font-family:var(--mono)">✓ Key saved: ${e(S.apiKey.slice(0,10))}…${e(S.apiKey.slice(-4))}</div>`:''}
+  </div>
+  <div class="panel">
+    <div class="ptitle">Mode</div>
+    <div class="tog-row">
+      <div><div class="tog-lbl">Demo mode</div><div class="tog-sub">Simulates M-Pesa payments without hitting the Paystack API</div></div>
+      <label class="tog"><input type="checkbox" id="dm-tog" ${S.demoMode?'checked':''}><span class="tog-sl"></span></label>
+    </div>
+  </div>
+  <div class="panel">
+    <div class="ptitle">Schedule</div>
+    <div class="sgrid">${SCHEDS.map(s=>`<div class="sc ${S.schedId===s.id?'on':''}" data-sched="${s.id}"><div class="sc-icon">${s.icon}</div><div class="sc-name">${e(s.name)}</div><div class="sc-desc">${e(s.desc)}</div></div>`).join('')}</div>
+    ${S.schedId==='cust'?`<div class="g2 mt12">
+      <div class="col"><label class="lbl">Max prompts</label><input type="number" id="cret" min="1" max="20" value="${S.custRet}"></div>
+      <div class="col"><label class="lbl">Window (minutes)</label><input type="number" id="cwin" min="5" max="1440" value="${S.custWin}"></div>
+    </div>`:''}
+  </div>
+  <div class="panel">
+    <div class="ptitle">Payment records</div>
+    <div class="row">
+      <div style="flex:1;font-family:var(--mono);font-size:13px">${S.records.length} records · KSH ${totalKsh().toLocaleString()} all-time</div>
+      <button class="btn btn-ghost btn-sm" id="csv-btn">Download CSV</button>
+    </div>
+  </div>
+  <div class="dz">
+    <div class="dz-t">Danger zone</div>
+    <div class="dz-s">These actions are permanent and cannot be undone.</div>
+    <div class="col" style="gap:10px">
+      ${S.clearConfirm?`<div class="row"><span style="font-size:13px;color:var(--rt)">Delete all ${S.contacts.length} contacts?</span><button class="btn btn-danger btn-sm" id="conf-del">Yes, delete all</button><button class="btn btn-ghost btn-sm" id="canc-del">Cancel</button></div>`:
+        `<button class="btn btn-danger btn-sm" id="del-cts">🗑  Delete all contacts</button>`}
+      <button class="btn btn-danger btn-sm" id="del-recs">🗑  Clear payment records</button>
+    </div>
+  </div></div>`;
+}
+
+// ────────────────────────────────────────────
+//  BIND HANDLERS
+// ────────────────────────────────────────────
+function on(id,ev,cb){const el=document.getElementById(id);if(el)el.addEventListener(ev,cb)}
+function bind(){
+  // nav tabs
+  document.querySelectorAll('[data-tab]').forEach(el=>el.addEventListener('click',()=>{S.tab=el.dataset.tab;render()}));
+  // dashboard
+  on('run-btn','click',runCampaign);
+  document.querySelectorAll('.apill').forEach(el=>el.addEventListener('click',()=>{S.amount=+el.dataset.amt;save();render()}));
+  on('set-amt','click',()=>{const v=+document.getElementById('camt')?.value;if(v>0){S.amount=v;save();render()}});
+  on('sched-sel','change',ev=>{S.schedId=ev.target.value;save();render()});
+  // contacts
+  on('add-one','click',()=>{
+    const p=(document.getElementById('np')?.value||'').trim();
+    const n=(document.getElementById('nn')?.value||'').trim();
+    if(!p)return;if(!validP(p)){addLog('Invalid number: '+p,'err');return}
+    if(S.contacts.find(c=>c.phone===fmtP(p))){addLog(fmtP(p)+' already exists','inf');return}
+    S.contacts=[...S.contacts,mkC(p,n)];save();render();
+  });
+  on('add-bulk','click',()=>{
+    const lines=(document.getElementById('bulk')?.value||'').split(/[\n,;]+/).map(x=>x.trim()).filter(Boolean);
+    let added=0,skip=0;const news=[];
+    for(const l of lines){const parts=l.split(/\s+/);const ph=parts[0],nm=parts.slice(1).join(' ');if(!validP(ph)||S.contacts.find(c=>c.phone===fmtP(ph))){skip++;continue}news.push(mkC(ph,nm));added++}
+    S.contacts=[...S.contacts,...news];save();
+    addLog('Added '+added+' contacts'+(skip?', skipped '+skip:''),'ok');render();
+  });
+  on('clr-bulk','click',()=>{const el=document.getElementById('bulk');if(el)el.value=''});
+  on('srch','input',ev=>{S.search=ev.target.value;render()});
+  document.querySelectorAll('[data-flt]').forEach(el=>el.addEventListener('click',()=>{S.filter=el.dataset.flt;render()}));
+  document.querySelectorAll('.del-btn').forEach(el=>el.addEventListener('click',()=>{if(!S.running){S.contacts=S.contacts.filter(c=>c.id!==el.dataset.id);save();render()}}));
+  // run
+  on('stop-btn','click',stopCampaign);
+  on('skip-btn','click',skipCurrent);
+  // report
+  on('exp-btn','click',()=>{
+    const p=paid(),f=failed(),s=S.stats;
+    alert(['PAYPROMPT KE — REPORT','Date: '+new Date().toLocaleDateString('en-KE'),'Amount: KSH '+S.amount,'Schedule: '+gSched().name,'','PAID ('+p.length+'):','',
+      ...p.map((c,i)=>`${i+1}. ${c.phone}${c.name?' ('+c.name+')':''} — KSH ${c.totalPaid} — ${c.paidAt||''}`),
+      '','FAILED ('+f.length+'):','',
+      ...f.map((c,i)=>`${i+1}. ${c.phone}${c.name?' ('+c.name+')':''} — ${c.retries}× — ${c.note||''}`),
+      '','—','Total this run: KSH '+s.ksh,'All-time: KSH '+totalKsh(),'Success rate: '+pct()+'%'
+    ].join('\n'));
+  });
+  on('run-again','click',runCampaign);
+  on('reset-all','click',()=>{S.contacts=S.contacts.map(c=>({...c,status:'idle',retries:0,attempts:[],note:'',paidAt:null,ref:null}));S.stats={prompted:0,paid:0,failed:0,ksh:0};S.logs=[];S.curId=null;save();render()});
+  document.querySelectorAll('.retry-btn').forEach(el=>el.addEventListener('click',()=>{updC(el.dataset.id,{status:'idle',retries:0,attempts:[],note:''});render()}));
+  // settings
+  on('key-inp','input',ev=>{S.apiKey=ev.target.value;ls.s(SK.k,S.apiKey)});
+  on('key-tog','click',()=>{S.showKey=!S.showKey;render()});
+  on('dm-tog','change',ev=>{S.demoMode=ev.target.checked;save();render()});
+  document.querySelectorAll('[data-sched]').forEach(el=>el.addEventListener('click',()=>{S.schedId=el.dataset.sched;save();render()}));
+  on('cret','input',ev=>{S.custRet=+ev.target.value;ls.s(SK.cr,S.custRet)});
+  on('cwin','input',ev=>{S.custWin=+ev.target.value;ls.s(SK.cw,S.custWin)});
+  on('csv-btn','click',()=>{
+    const csv=['Phone,Name,Amount,Reference,Time,Date',...S.records.map(r=>`${r.phone},${r.name||''},${r.amount},${r.ref||''},${r.time},${r.date}`)].join('\n');
+    const a=document.createElement('a');a.href='data:text/csv;charset=utf-8,'+encodeURIComponent(csv);a.download='payprompt_records_'+Date.now()+'.csv';a.click();
+  });
+  on('del-cts','click',()=>{S.clearConfirm=true;render()});
+  on('conf-del','click',()=>{S.contacts=[];S.clearConfirm=false;addLog('All contacts deleted','err');save();render()});
+  on('canc-del','click',()=>{S.clearConfirm=false;render()});
+  on('del-recs','click',()=>{if(confirm('Delete all '+S.records.length+' payment records?')){S.records=[];addLog('Records cleared','err');save();render()}});
+}
+
+render();
+</script>
+</body>
+</html>
