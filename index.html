@@ -457,8 +457,8 @@ function updStats(){
 }
 async function doCharge(c,amt){
   const amount=amt!=null?amt:S.amount;
-  const mob=c.phone.replace(/^0/,'254');
-  const payload={email:mob+'@mpesa.ke',amount:amount*100,currency:'KES',mobile_money:{phone:mob,provider:'mpesa'}};
+  const mob='+254'+String(c.phone||'').replace(/\D/g,'').replace(/^0/,'').slice(0,9);
+  const payload={email:mob.replace('+','')+'@mpesa.ke',amount:amount*100,currency:'KES',mobile_money:{phone:mob,provider:'mpesa'}};
   if(!S.useDirect){
     try{
       const res=await fetch('/api/charge',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});
