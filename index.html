@@ -237,7 +237,7 @@ textarea{resize:vertical;min-height:90px;line-height:1.6}
 // --------------------------------------------
 //  STORAGE
 // --------------------------------------------
-const SK={c:'kp4_c',r:'kp4_r',k:'kp4_k',pk:'kp4_pk',ud:'kp4_ud',inst:'kp4_inst',a:'kp4_a',s:'kp4_s',cr:'kp4_cr',cw:'kp4_cw',dl:'kp4_dl'};
+const SK={c:'kp4_c',r:'kp4_r',k:'kp4_k',pk:'kp4_pk',ud:'kp4_ud',inst:'kp4_inst',a:'kp4_a',s:'kp4_s',cr:'kp4_cr',cw:'kp4_cw',dl:'kp4_dl',wi:'kp4_wi',ws:'kp4_ws',mw:'kp4_mw'};
 const ls={
   g(k,fb){try{const v=localStorage.getItem(k);return v!==null?JSON.parse(v):fb}catch{return fb}},
   s(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch{}}
@@ -255,16 +255,19 @@ const S={
   amount:  ls.g(SK.a,50),
   delayMs: ls.g(SK.dl,0),
   schedId: ls.g(SK.s,'3x1h'),
+  waveInterval: ls.g(SK.wi,60),
+  waveSize: ls.g(SK.ws,50),
+  maxWaves: ls.g(SK.mw,5),
   custRet: ls.g(SK.cr,3),
   custWin: ls.g(SK.cw,60),
   demoMode:false,
   tab:'dashboard',
   running:false, curId:null,
-  logs:[], stats:{prompted:0,paid:0,failed:0,ksh:0},
+  logs:[], waveLog:[], stats:{prompted:0,paid:0,failed:0,ksh:0},
   search:'', filter:'all',
   showKey:false, clearConfirm:false,
 };
-function save(){ls.s(SK.c,S.contacts);ls.s(SK.r,S.records);ls.s(SK.k,S.apiKey);ls.s(SK.pk,S.publicKey);ls.s(SK.ud,S.useDirect);ls.s(SK.a,S.amount);ls.s(SK.s,S.schedId);ls.s(SK.cr,S.custRet);ls.s(SK.cw,S.custWin);ls.s(SK.dl,S.delayMs)}
+function save(){ls.s(SK.c,S.contacts);ls.s(SK.r,S.records);ls.s(SK.k,S.apiKey);ls.s(SK.pk,S.publicKey);ls.s(SK.ud,S.useDirect);ls.s(SK.a,S.amount);ls.s(SK.s,S.schedId);ls.s(SK.cr,S.custRet);ls.s(SK.cw,S.custWin);ls.s(SK.dl,S.delayMs);ls.s(SK.wi,S.waveInterval);ls.s(SK.ws,S.waveSize);ls.s(SK.mw,S.maxWaves)}
 
 // --------------------------------------------
 //  HELPERS
@@ -298,8 +301,11 @@ const SCHEDS=[
   {id:'once',name:'One time',    desc:'Single prompt only',retries:1,winMin:60,cont:false,icon:'1x'},
   {id:'3x1h',name:'3x per hour',desc:'3 prompts / 60 min',retries:3,winMin:60,cont:false,icon:'3x'},
   {id:'3x24',name:'3x / hr 24/7',desc:'Runs every hour all day',retries:3,winMin:60,cont:true,intervalSec:3600,resetEachRound:true,icon:'8'},
-  {id:'1m1h_seq',name:'Every minute (1 hour)',desc:'Sequential list every 60s for 1 hour',retries:60,winMin:60,cont:false,intervalSec:60,maxRounds:60,resetEachRound:false,icon:'1m'},
-  {id:'1m24_seq',name:'Every minute (all day)',desc:'Sequential list every 60s for 24 hours',retries:1440,winMin:1440,cont:false,intervalSec:60,maxRounds:1440,resetEachRound:false,icon:'24h'},
+  {id:'1m1h_seq',name:'Every minute (1 hour) - sequential',desc:'Sequential list every 60s for 1 hour',retries:60,winMin:60,cont:false,intervalSec:60,maxRounds:60,resetEachRound:false,icon:'1m'},
+  {id:'1m24_seq',name:'Every minute (all day) - sequential',desc:'Sequential list every 60s for 24 hours',retries:1440,winMin:1440,cont:false,intervalSec:60,maxRounds:1440,resetEachRound:false,icon:'24h'},
+  {id:'1m1h_wave',name:'Every minute (1 hour) - waves',desc:'Start a new wave every 60s (overlap allowed)',retries:60,winMin:60,cont:false,mode:'waves',intervalSec:60,maxRounds:60,resetEachRound:false,icon:'1mW'},
+  {id:'1m24_wave',name:'Every minute (all day) - waves',desc:'Start a new wave every 60s (overlap allowed)',retries:1440,winMin:1440,cont:false,mode:'waves',intervalSec:60,maxRounds:1440,resetEachRound:false,icon:'24hW'},
+  {id:'1s1h_wave',name:'Every second (1 hour) - waves',desc:'Start a new wave every 1s for 1 hour',retries:3600,winMin:60,cont:false,mode:'waves',intervalSec:1,maxRounds:3600,resetEachRound:false,icon:'1s'},
   {id:'1m1h',name:'Every minute (1 hour) - blast',desc:'All contacts at once every 60s for 1 hour',retries:60,winMin:60,cont:false,mode:'blast',intervalSec:60,maxRounds:60,resetEachRound:false,icon:'1m!'},
   {id:'1m24',name:'Every minute (all day) - blast',desc:'All contacts at once every 60s for 24 hours',retries:1440,winMin:1440,cont:false,mode:'blast',intervalSec:60,maxRounds:1440,resetEachRound:false,icon:'24h!'},
   {id:'cust',name:'Custom',      desc:'Set your own rules',retries:null,winMin:null,cont:false,icon:'?'}
@@ -353,6 +359,9 @@ function addLog(m,t='inf'){
   const lb=document.getElementById('logbox');
   if(lb){const d=document.createElement('div');d.className='l'+t;d.textContent='['+S.logs[S.logs.length-1].ts+'] '+m;lb.appendChild(d);lb.scrollTop=lb.scrollHeight}
 }
+function addWaveLog(m,count){
+  S.waveLog=[{ts:ts(),m,count},...S.waveLog.slice(0,40)];
+}
 
 // ── COUNTDOWN ──
 let cdTmr=null;
@@ -388,15 +397,18 @@ let skipId=null;
 async function runCampaign(){
   if(S.useDirect&&!S.apiKey){alert('Add your Paystack secret key in Settings first.');S.tab='settings';render();return}
   if(!S.contacts.length){alert('Add contacts first.');S.tab='contacts';render();return}
-  stopF=false;S.running=true;S.stats={prompted:0,paid:0,failed:0,ksh:0};
+  if(S.amount<10){alert('Minimum amount is KSH 10');S.amount=10;save();render()}
+  stopF=false;S.running=true;S.stats={prompted:0,paid:0,failed:0,ksh:0};S.waveLog=[];
   S.tab='run';render();
   addLog('Campaign started - '+S.contacts.length+' contacts - KSH '+S.amount+' - '+gSched().name,'ok');
   const sc=gSched();let round=0;
+
   if(sc.mode==='blast'){
     const maxRounds=sc.maxRounds||gRet();
     while(!stopF && (!maxRounds || round<maxRounds)){
       const pending=S.contacts.filter(c=>c.status!=='paid');
       if(!pending.length){addLog('All contacts paid.','ok');break;}
+      addWaveLog('Blast '+(round+1),pending.length);
       addLog('Blast round '+(round+1)+' - '+pending.length+' contacts','inf');
       const now=Date.now(),wMs=gWin()*60000;
       await Promise.all(pending.map(async entry=>{
@@ -437,6 +449,65 @@ async function runCampaign(){
     S.tab=wasStopped?'run':'report';render();
     return;
   }
+
+  if(sc.mode==='waves'){
+    const intervalSec=sc.intervalSec||S.waveInterval||60;
+    const maxRounds=sc.maxRounds||gRet();
+    const waveSize=Math.max(1,Number(S.waveSize)||1);
+    const maxWaves=Math.max(1,Number(S.maxWaves)||1);
+    let activeWaves=0;
+    const wavePromises=[];
+    while(!stopF && (!maxRounds || round<maxRounds)){
+      if(activeWaves>=maxWaves){await sl(100);continue;}
+      const pendingAll=S.contacts.filter(c=>c.status!=='paid'&&c.status!=='active');
+      if(!pendingAll.length){addLog('All contacts paid.','ok');break;}
+      const batch=pendingAll.slice(0,waveSize);
+      const waveId=round+1;
+      const p=(async()=>{
+        activeWaves++;
+        addWaveLog('Wave '+waveId,batch.length);
+        addLog('Wave '+waveId+' - '+batch.length+' contacts','inf');
+        const now=Date.now(),wMs=gWin()*60000;
+        await Promise.all(batch.map(async entry=>{
+          if(stopF)return;
+          const fc=S.contacts.find(c=>c.id===entry.id)||entry;
+          if(fc.status==='paid')return;
+          const rec=(fc.attempts||[]).filter(t=>t>now-wMs).length;
+          if(rec>=gRet()){
+            if(fc.status!=='failed'){updC(entry.id,{status:'failed',note:'Max retries'});S.stats.failed++;updStats();}
+            return;
+          }
+          updC(entry.id,{status:'active'});S.stats.prompted++;updStats();
+          const result=await doCharge(fc);
+          const t2=Date.now();
+          if(!result.ok){
+            addLog('Fail '+fc.phone+' - '+result.err,'err');
+            updC(entry.id,{status:'failed',retries:(fc.retries||0)+1,attempts:[...(fc.attempts||[]),t2],note:result.err});
+            S.stats.failed++;updStats();
+            return;
+          }
+          addLog('Paid '+fc.phone+' - KSH '+S.amount,'ok');
+          const rec2={id:uid(),phone:fc.phone,name:fc.name,amount:S.amount,ref:result.ref,time:ts(),date:ds()};
+          S.records=[rec2,...S.records.slice(0,999)];
+          updC(entry.id,{status:'paid',paidAt:ts(),ref:result.ref,attempts:[...(fc.attempts||[]),t2],totalPaid:(fc.totalPaid||0)+S.amount});
+          S.stats.paid++;S.stats.ksh+=S.amount;updStats();
+        }));
+        activeWaves--;
+      })();
+      wavePromises.push(p);
+      round++;
+      save();
+      if(maxRounds && round>=maxRounds)break;
+      await waitWithStop(intervalSec);
+    }
+    await Promise.allSettled(wavePromises);
+    const wasStopped=stopF;
+    S.curId=null;S.running=false;save();
+    addLog(wasStopped?'Campaign stopped.':'Campaign complete.',wasStopped?'err':'ok');
+    S.tab=wasStopped?'run':'report';render();
+    return;
+  }
+
   const maxRounds=sc.maxRounds || (sc.cont?null:1);
   const waitSec=sc.intervalSec || (sc.cont?3600:0);
   while(!stopF && (!maxRounds || round<maxRounds)){
@@ -501,6 +572,7 @@ async function runLiveTest(){
   const amt=+((document.getElementById('test-amt')?.value||'').trim())||S.amount;
   if(!raw||!validP(raw)){alert('Enter a valid phone number');addLog('Invalid test number: '+raw,'err');return}
   if(!(amt>0)){alert('Enter a valid amount');return}
+  if(amt<10){alert('Minimum amount is KSH 10');return}
   const phone=fmtP(raw);
   await runLiveTestCore(phone,amt);
 }
@@ -509,6 +581,7 @@ async function runLiveTestBatch(count=5){
   const amt=+((document.getElementById('test-amt')?.value||'').trim())||S.amount;
   if(!raw||!validP(raw)){alert('Enter a valid phone number');addLog('Invalid test number: '+raw,'err');return}
   if(!(amt>0)){alert('Enter a valid amount');return}
+  if(amt<10){alert('Minimum amount is KSH 10');return}
   const phone=fmtP(raw);
   for(let i=0;i<count;i++){
     await runLiveTestCore(phone,amt);
@@ -599,7 +672,7 @@ function dashH(){
     <div class="panel">
       <div class="ptitle">Quick start</div>
       <label class="lbl">Amount (KSH)</label>
-      <div class="apills">${[50,100,200,500,1000].map(a=>`<div class="apill ${S.amount===a?'on':''}" data-amt="${a}">KSH ${a}</div>`).join('')}</div>
+      <div class="apills">${[10,50,100,200,500,1000].map(a=>`<div class="apill ${S.amount===a?'on':''}" data-amt="${a}">KSH ${a}</div>`).join('')}</div>
       <div class="row mt8">
         <input type="number" id="camt" placeholder="Custom…" style="flex:1">
         <button class="btn btn-ghost btn-sm" id="set-amt">Set</button>
@@ -690,6 +763,10 @@ function runH(){
     </div>
     <div class="prog"><div class="prog-fill" id="prog-fill" style="width:${pct()}%"></div></div>
     <div class="clist" style="margin-top:14px">${S.contacts.map((c,i)=>rowH(c,i)).join('')}</div>
+  </div>
+  <div class="panel">
+    <div class="ptitle">Wave list</div>
+    ${S.waveLog.length?`<div class="sfeed">${S.waveLog.map(w=>`<div class="sfrow"><span class="sftime">${w.ts}</span><div class="cdot dp"></div><span style="flex:1;font-family:var(--mono);font-size:12px">${e(w.m)}</span><span class="badge bg">${w.count}</span></div>`).join('')}</div>`:'<div class="ldim">No waves yet</div>'}
   </div>
   <div class="panel">
     <div class="ptitle">Activity log</div>
@@ -784,6 +861,20 @@ function setH(){
     </div>`:''}
   </div>
   <div class="panel">
+    <div class="ptitle">Wave settings</div>
+    <div class="g2">
+      <div class="col"><label class="lbl">Wave size (contacts)</label><input type="number" id="wave-size" min="1" max="1000000" value="${S.waveSize}"></div>
+      <div class="col"><label class="lbl">Max waves at once</label><input type="number" id="max-waves" min="1" max="20" value="${S.maxWaves}"></div>
+    </div>
+    <div class="mt12"></div>
+    <label class="lbl">Wave interval (seconds)</label>
+    <input type="number" id="wave-interval" min="1" max="3600" value="${S.waveInterval}">
+    <div class="apills mt8">
+      ${[1,5,10,30,60].map(s=>`<div class="apill ${S.waveInterval===s?'on':''}" data-wave-int="${s}">${s}s</div>`).join('')}
+    </div>
+    <div style="font-size:12px;color:var(--t2);margin-top:8px">Used by wave schedules. Lower means faster repeats.</div>
+  </div>
+  <div class="panel">
     <div class="ptitle">Payment records</div>
     <div class="row">
       <div style="flex:1;font-family:var(--mono);font-size:13px">${S.records.length} records · KSH ${totalKsh().toLocaleString()} all-time</div>
@@ -858,6 +949,10 @@ function bind(){
   on('delay-ms','input',ev=>{S.delayMs=Math.max(0,+ev.target.value||0);save()});
   document.querySelectorAll('[data-sched]').forEach(el=>el.addEventListener('click',()=>{S.schedId=el.dataset.sched;save();render()}));
   document.querySelectorAll('[data-delay]').forEach(el=>el.addEventListener('click',()=>{S.delayMs=+el.dataset.delay||0;const i=document.getElementById('delay-ms');if(i)i.value=S.delayMs;save();render()}));
+  on('wave-size','input',ev=>{S.waveSize=Math.max(1,+ev.target.value||1);save()});
+  on('max-waves','input',ev=>{S.maxWaves=Math.max(1,+ev.target.value||1);save()});
+  on('wave-interval','input',ev=>{S.waveInterval=Math.max(1,+ev.target.value||1);save()});
+  document.querySelectorAll('[data-wave-int]').forEach(el=>el.addEventListener('click',()=>{S.waveInterval=+el.dataset.waveInt||1;const i=document.getElementById('wave-interval');if(i)i.value=S.waveInterval;save();render()}));
   on('cret','input',ev=>{S.custRet=+ev.target.value;ls.s(SK.cr,S.custRet)});
   on('cwin','input',ev=>{S.custWin=+ev.target.value;ls.s(SK.cw,S.custWin)});
   on('csv-btn','click',()=>{
@@ -924,6 +1019,7 @@ initInstallPrompt();
 </script>
 </body>
 </html>
+
 
 
 
